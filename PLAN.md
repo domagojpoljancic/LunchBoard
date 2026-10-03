@@ -1,84 +1,47 @@
-# LunchBoard — development plan
+# LunchBoard plan
 
-Working name for a solo web app. Plan the lunches you will actually cook, then get a buy list and a pantry check.
+This file is the map. It is not the whole specification.
 
-The first usable version is the whole loop: library, week board, lists. Similar meals, filling empty days, and the confidence nudge come immediately after that loop works.
+The app is specified across `docs/`, `agents/`, and `prompts/execute.md`. A one-click build follows those files and does not invent a simpler product.
 
-## Decisions
+## How to read this
 
-- English interface. Meat and dry goods in grams. Vegetables can be counts ("2 onions").
-- One person, in the browser, including a phone while cooking.
-- Calendar week. Monday–Friday start on. Any day can be turned off.
-- Each planned day is its own cook. Extra portions are bought as extra food. Tomorrow is not modeled as leftovers.
-- Servings default to 3 and can be changed on that day.
-- Each day is **evening before** or **at lunch**. Evening before is the default. A long meal can still be chosen, with a time warning.
-- Library shelves: **Can cook**, **Similar**, **Needs a recipe**.
-- A starter meal stays under **Needs a recipe** until you mark **I know how to cook this**.
-- A meal you add starts as **I know how to cook this**. Confidence is editable in one tap.
-- Similar means the same kind of protein and the same kind of cooking.
-- Every meal can gain or lose ingredients, including starter meals and sides. Each ingredient is **buy** or **pantry**. Edits are yours. The next list uses them.
-- A protein option (beef mince / vegan mince) changes the shopping line and keeps one recipe.
-- Sides are offered every time you place a meal. Suggested sides start selected. A one-pot starts with sides unselected.
-- Buy list is flat. No aisle groups in this version. Unchecked items carry over. Checked items stay checked when the week is rebuilt. If an amount goes up, that line becomes unchecked.
-- Pantry is one checklist of the seasonings used that week. Ticks reset next week.
-- Recipe depth follows confidence: memory cues, a short prompt, or full steps. After three cooks, the app asks if confidence should move up.
-- **Fill empty days** uses meals you know, then similar ones. It leaves a day empty rather than assigning a meal you have never cooked. It does not replace a day you already filled.
-- Suggestions lean toward white meat, allow vegetarian meals, and mix proteins across the week.
-- No photos. Cards are colored by protein. The board is structured, with a coach voice.
-- Out of this version: aisle groups, leftover days, photos, offline mode, Google Keep, a remembered pantry.
+| Question | Document that wins |
+| --- | --- |
+| What did we decide? | `docs/00-decisions.md` |
+| What does the person do? | `docs/01-flows.md` |
+| How does the data and the shopping list work? | `docs/02-data-and-logic.md` |
+| What is on each screen? | `docs/03-screens.md` |
+| How must it look and feel? | `docs/04-visual-design.md` |
+| Which meals ship in the seed? | `docs/05-starter-meals.md` |
+| What gets built, in what order? | `docs/06-build-order.md` |
+| When is it finished? | `docs/07-definition-of-done.md` |
+| What words appear in the UI? | `docs/08-copy.md` |
+| Who builds which part? | `agents/` |
 
-## Screens
+If two documents disagree, the more specific one wins. Fix the other document in the same change.
 
-1. **Week board.** Days as columns. Library on the side. Empty days, time warnings, and **Fill empty days**.
-2. **Meal library.** Three shelves, plus a protein filter.
-3. **Meal editor.** Name, confidence, times, method, protein options, ingredients, sides, and steps.
-4. **Add meal.** Name, ingredients, protein, and time.
-5. **Day card.** Meal, protein option, servings, prep window, sides.
-6. **Lists.** Buy list and pantry check for the open week.
-7. **Cook.** The chosen day, at the recipe depth you need.
+## What LunchBoard is
 
-Tap to place a meal on a day. Dragging can follow once tap works on a phone browser.
+A solo web app. You plan lunches for a calendar week on a board, from meals you know and meals you are willing to learn. Confirming the week produces a flat buy list and a cupboard checklist.
 
-## Data
+The interface is a paper planning board: a dot grid, day columns, meal tickets colored by protein, coach notes on yellow stickies. It is specified so a principal frontend engineer can build it without falling back to a generic admin template.
 
-- **Meal:** name, confidence, active minutes, total minutes, method, base servings, cook count.
-- **Protein option:** label and protein group. One option is the default.
-- **Ingredient:** name, amount, unit, buy or pantry. It belongs to the meal, to one protein option, or to a side.
-- **Side:** name, time, ingredients, and which meals suggest it.
-- **Week and day:** date, on or off, meal, protein option, servings, prep window, chosen sides.
-- **Buy line:** name, amount, unit, checked, and whether it came from this plan or was carried over.
-- **Pantry line:** name and checked, for this week only.
-- **Steps:** short prompts and full steps, in order.
+## Rules that do not get reopened during the build
 
-## List logic
+- Lunch only. One person. English. Grams for meat and dry goods. Counts for things like onions.
+- Calendar week, Monday start. Monday–Friday on. Saturday and Sunday off. Any day can be toggled.
+- Each planned day is its own cook. Servings default to 3, changed per day, range 1–12.
+- Prep on each day is **Night before** or **At lunch**. Night before is the default. A meal that is long for that window still saves, with a warning.
+- Shelves are derived: **Can cook** (you know it, or you roughly know it), **Similar**, **Needs a recipe**.
+- You can mark any meal as one you know. You can add a meal. You can add and remove ingredients on every meal, including starters and sides.
+- The same meal can have two proteins. Beef mince and vegan mince share steps. The list follows the protein chosen on that day.
+- Sides are chosen every time you place a meal. Defaults come from the meal, not from last week.
+- Buy list is flat. Unchecked lines carry into the next week and do not double-count when the new week needs the same thing. Pantry ticks reset each week.
+- **Fill empty days** fills only empty, enabled days. It uses meals you know, then similar meals. It leaves a day empty rather than assigning a meal that needs a recipe and is not similar.
+- No photos, aisles, leftover-day linking, offline mode, Google Keep, or a remembered pantry in this build.
+- Local database is SQLite so the app runs without Docker. The schema stays ordinary SQL.
 
-For each turned-on day with a meal, take that meal’s ingredients, keep only the selected protein option, add the chosen sides, and scale amounts from the meal’s base servings. Combine lines with the same name and unit. Buy lines go to the shopping list. Pantry lines go to the weekly check.
+## Done
 
-## Build order
-
-1. **App shell and data.** Sign-in, database, and a starter set of about twelve lunches, including Bolognese, goulash, and lasagne with a vegan mince option, plus lighter chicken, fish, bean, and grain lunches.
-2. **Library and editor.** Browse, add a meal, mark confidence, and add or remove ingredients on any meal.
-3. **Week board.** Turn days on and off, place a meal, set servings, protein, prep window, and sides.
-4. **Lists.** Generate, check off, carry over, and rebuild after a meal or day changes. Reset the pantry check on a new week.
-5. **Cook view and nudge.** Show the right recipe depth and count cooks.
-6. **Similar meals and fill empty days.** Rank from the meals you know, then fill only empty days.
-7. **Polish.** Protein colors, coach wording, empty states, and a cook layout readable on a phone.
-
-Steps 1–4 are the first usable app. Steps 5–7 are what make it feel smart.
-
-## Done when
-
-- You can mark Bolognese as a meal you know, and add Burrata pasta yourself.
-- You can remove or add an ingredient on either meal and see the buy list change.
-- You can plan an uneven week, mix evening-before and lunch-hour cooking, and set portions per day.
-- A beef or vegan mince choice changes the shopping line and keeps one recipe.
-- Unchecked buy items survive into the next week. Pantry ticks do not.
-- Fill empty days never overwrites your choices.
-
-## Stack
-
-Next.js, TypeScript, Postgres, email sign-in, Tailwind. Chosen for a small solo web app that still has to keep a week, a personal cookbook, and a list in sync.
-
-## Repo reality
-
-This repository currently contains the plan only. No application code, no database, no deploy.
+`docs/07-definition-of-done.md` is the checklist. The build is not done when the pages exist. It is done when the list math tests pass, the week can be planned, ingredients edit through to the list, and the board matches the visual spec.
