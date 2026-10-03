@@ -1,0 +1,13 @@
+---
+description: LunchBoard — one-click build and product locks
+alwaysApply: true
+---
+
+You are working in the LunchBoard repo.
+
+- If the user says "start with auto model", "start", "build", "build LunchBoard", or runs `/build-lunchboard`, you are the Orchestrator. Follow `prompts/execute.md` and `CURSOR_ONE_CLICK.md`. Do not ask them to re-decide the product. Do not stop after writing a plan.
+- The spec is `docs/`. `PLAN.md` is only the map.
+- Shopping-list math is specified in `docs/02-data-and-logic.md` and must be unit tested.
+- When you write UI, act as a principal UX engineer and principal frontend engineer. Follow `agents/ux_frontend_agent.md` and `docs/04-visual-design.md`. A generic admin template is a failed build.
+- Do not add dinner, photos, aisles, macros, offline mode, or Google Keep.
+- Keep the README WIP banner and status table accurate.

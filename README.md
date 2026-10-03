@@ -1,34 +1,69 @@
 # LunchBoard
 
-> **WIP — working name.** The product decisions are locked. The app is not built yet. Nothing here runs.
+> **WIP — working name.** The build spec is locked. The app is not built yet. Nothing here runs until you start the one-click build.
 
 Weekday lunch planning on a board. You keep the meals you know, add your own, place them on the days you are actually home, and get a buy list plus a pantry check.
 
-**LunchBoard** is a working title: the week is a board, and each column is a lunch. It can change before the app ships.
+**LunchBoard** is a working title: the week is a board, and each column is a lunch.
+
+## One-click build
+
+Open this repo in Cursor and say:
+
+```
+start with auto model
+```
+
+Or run the command **`/build-lunchboard`**.
+
+That starts the orchestrator. It reads the spec and builds the whole app: data, shopping-list logic, seed meals, and the interface. You do not assign roles and you do not paste prompts. The frontend role is a principal UX engineer, specified in `agents/ux_frontend_agent.md` and `docs/04-visual-design.md`.
+
+Details: [CURSOR_ONE_CLICK.md](CURSOR_ONE_CLICK.md).
 
 ## What works / stubbed / TBD
 
 | Piece | Status | Notes |
 | --- | --- | --- |
-| Product decisions | **Locked** | [PLAN.md](PLAN.md) |
-| Web app | **TBD** | Not scaffolded. No install, no dev server |
-| Meal library | **TBD** | Starter meals, meals you add, confidence shelves |
-| Ingredient editing | **TBD** | Add and remove ingredients on every meal |
-| Week board | **TBD** | Flexible days, servings, protein option, prep window, sides |
-| Buy list and pantry check | **TBD** | Flat list, carry-over, weekly pantry reset |
-| Cook view, similar meals, fill empty days | **TBD** | After the first usable planning loop |
+| Build spec | **Locked** | `docs/`, `agents/`, `PLAN.md` |
+| One-click command | **Ready** | `/build-lunchboard` or “start with auto model” |
+| Web app | **TBD** | Created by the one-click build |
+| Meal library | **TBD** | Spec in `docs/03-screens.md` |
+| Week board | **TBD** | Spec in `docs/04-visual-design.md` |
+| Buy list and pantry check | **TBD** | Rules in `docs/02-data-and-logic.md` |
+| Cook view, similar meals, fill empty days | **TBD** | Included in the one-click build, not a later idea |
+
+After a build, the orchestrator updates this table to match what actually runs.
 
 ## Quick start
 
-There is no app yet, so there is nothing to install or run.
+Before the build, there is nothing to install.
 
-The build order starts in [PLAN.md](PLAN.md).
+After the build, from the repo root:
 
-## What it will do
+```bash
+npm install
+npx prisma migrate dev
+npx prisma db seed
+npm run dev
+```
 
-- Mark a starter meal, such as Bolognese, as one you know how to cook.
-- Add a meal yourself, such as Burrata pasta, with the ingredients you type.
-- Add or remove ingredients on any meal, starter or yours.
-- Plan a calendar week. Monday–Friday start on. Any day can be turned off.
-- Set portions, protein (beef mince or vegan mince on the same meal), evening-before or lunch-hour cooking, and sides on each day.
-- Generate an English shopping list in grams, plus a pantry checklist for that week only.
+Local sign-in (created by the seed):
+
+- Email: `cook@lunchboard.local`
+- Password: `lunchboard`
+
+## Document map
+
+| File | What it decides |
+| --- | --- |
+| [PLAN.md](PLAN.md) | How the documents fit together, and the rules that do not get reopened |
+| [docs/00-decisions.md](docs/00-decisions.md) | Product rules in full |
+| [docs/01-flows.md](docs/01-flows.md) | Week planning, editing meals, lists, cooking |
+| [docs/02-data-and-logic.md](docs/02-data-and-logic.md) | Schema, scaling, merge, carry-over, similar, fill |
+| [docs/03-screens.md](docs/03-screens.md) | Every screen, state, and action |
+| [docs/04-visual-design.md](docs/04-visual-design.md) | Visual system the frontend must implement |
+| [docs/05-starter-meals.md](docs/05-starter-meals.md) | The twelve seed meals |
+| [docs/06-build-order.md](docs/06-build-order.md) | Waves, files, commands |
+| [docs/07-definition-of-done.md](docs/07-definition-of-done.md) | Acceptance tests |
+| [docs/08-copy.md](docs/08-copy.md) | Interface language |
+| [agents/](agents/) | Roles the orchestrator adopts, including principal UX/frontend |
