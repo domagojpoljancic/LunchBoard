@@ -79,7 +79,7 @@ export default async function CookPage({
         variantLabel={day.variant?.label ?? null}
         ingredients={ingredients}
         keypoints={keypoints}
-        steps={steps}
+        steps={meal?.confidence === "RECIPE" ? steps : []}
       />
     </div>
   );

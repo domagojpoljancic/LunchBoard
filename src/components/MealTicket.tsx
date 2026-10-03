@@ -26,9 +26,16 @@ export function MealTicket({
   compact?: boolean;
 }) {
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onSelect}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onSelect?.();
+        }
+      }}
       className={`flex w-full overflow-hidden rounded-[16px] border bg-[var(--card)] text-left transition-transform ${
         selected ? "border-[var(--ink)] border-2" : "border-[var(--line)]"
       } ${compact ? "" : "hover:-translate-y-0.5"}`}
@@ -54,18 +61,24 @@ export function MealTicket({
           {confidenceLabel(meal.confidence)}
         </span>
         {meal.hasMultipleVariants && meal.variantLabel ? (
-          <span
-            className="mt-1 inline-block text-[13px] font-semibold underline-offset-2 hover:underline"
-            onClick={(e) => {
-              e.stopPropagation();
-              onCycleVariant?.();
-            }}
-            role={onCycleVariant ? "button" : undefined}
-          >
-            {meal.variantLabel}
-          </span>
+          onCycleVariant ? (
+            <button
+              type="button"
+              className="mt-1 inline-block min-h-11 text-left text-[13px] font-semibold underline-offset-2 hover:underline"
+              onClick={(event) => {
+                event.stopPropagation();
+                onCycleVariant();
+              }}
+            >
+              {meal.variantLabel}
+            </button>
+          ) : (
+            <span className="mt-1 inline-block text-[13px] font-semibold">
+              {meal.variantLabel}
+            </span>
+          )
         ) : null}
       </span>
-    </button>
+    </div>
   );
 }

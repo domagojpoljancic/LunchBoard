@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { nameKey } from "@/lib/name-key";
 import { rebuildWeek } from "@/lib/rebuild";
@@ -15,20 +16,42 @@ export async function ensureWeek(userId: string, weekStart: string) {
   if (existing) return existing;
 
   const dates = weekDates(weekStart);
-  const week = await prisma.week.create({
-    data: {
-      userId,
-      weekStart,
-      days: {
-        create: dates.map((date, index) => ({
-          date,
-          enabled: index < 5,
-          servings: 3,
-          prepWindow: "EVENING_BEFORE",
-        })),
+  if (dates.length !== 7) {
+    throw new Error("Week start must be a YYYY-MM-DD date");
+  }
+
+  let week;
+  try {
+    week = await prisma.week.create({
+      data: {
+        userId,
+        weekStart,
+        days: {
+          create: dates.map((date, index) => ({
+            date,
+            enabled: index < 5,
+            servings: 3,
+            prepWindow: "EVENING_BEFORE",
+          })),
+        },
       },
-    },
-  });
+    });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return prisma.week.findUniqueOrThrow({
+        where: { userId_weekStart: { userId, weekStart } },
+        include: {
+          days: { orderBy: { date: "asc" } },
+          shoppingItems: { orderBy: { sortOrder: "asc" } },
+          pantryItems: true,
+        },
+      });
+    }
+    throw error;
+  }
 
   const prevStart = shiftWeek(weekStart, -1);
   const prev = await prisma.week.findUnique({

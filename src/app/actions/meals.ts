@@ -1,10 +1,10 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { defaultRole } from "@/lib/pantry-dictionary";
-import { rebuildWeeksForMeal } from "@/lib/rebuild";
+import { revalidateApp } from "@/lib/revalidate-app";
+import { rebuildWeeks, rebuildWeeksForMeal } from "@/lib/rebuild";
 import { requireUser } from "@/lib/session";
 
 export async function setConfidence(mealId: string, confidence: string) {
@@ -16,8 +16,7 @@ export async function setConfidence(mealId: string, confidence: string) {
     where: { id: mealId, userId: user.id },
     data: { confidence },
   });
-  revalidatePath("/week");
-  revalidatePath(`/meals/${mealId}`);
+  revalidateApp();
 }
 
 export async function createMeal(input: {
@@ -76,7 +75,7 @@ export async function createMeal(input: {
     },
   });
 
-  revalidatePath("/week");
+  revalidateApp();
   redirect(`/meals/${meal.id}`);
 }
 
@@ -106,9 +105,7 @@ export async function updateMealBasics(
     },
   });
   await rebuildWeeksForMeal(mealId);
-  revalidatePath(`/meals/${mealId}`);
-  revalidatePath("/week");
-  revalidatePath("/list", "layout");
+  revalidateApp();
 }
 
 export async function addIngredient(
@@ -143,9 +140,7 @@ export async function addIngredient(
     },
   });
   await rebuildWeeksForMeal(mealId);
-  revalidatePath(`/meals/${mealId}`);
-  revalidatePath("/list", "layout");
-  revalidatePath("/week");
+  revalidateApp();
 }
 
 export async function updateIngredient(
@@ -163,6 +158,7 @@ export async function updateIngredient(
     include: { meal: true, side: true },
   });
   if (!ing) throw new Error("Not found");
+  if (!ing.meal && !ing.side) throw new Error("Unauthorized");
   if (ing.meal && ing.meal.userId !== user.id) throw new Error("Unauthorized");
   if (ing.side && ing.side.userId !== user.id) throw new Error("Unauthorized");
 
@@ -176,10 +172,8 @@ export async function updateIngredient(
     },
   });
 
-  if (ing.mealId) await rebuildWeeksForMeal(ing.mealId);
-  revalidatePath("/week");
-  revalidatePath("/list", "layout");
-  if (ing.mealId) revalidatePath(`/meals/${ing.mealId}`);
+  await rebuildWeeks({ mealId: ing.mealId, sideId: ing.sideId });
+  revalidateApp();
 }
 
 export async function deleteIngredient(ingredientId: string) {
@@ -189,14 +183,13 @@ export async function deleteIngredient(ingredientId: string) {
     include: { meal: true, side: true },
   });
   if (!ing) throw new Error("Not found");
+  if (!ing.meal && !ing.side) throw new Error("Unauthorized");
   if (ing.meal && ing.meal.userId !== user.id) throw new Error("Unauthorized");
   if (ing.side && ing.side.userId !== user.id) throw new Error("Unauthorized");
 
   await prisma.ingredient.delete({ where: { id: ingredientId } });
-  if (ing.mealId) await rebuildWeeksForMeal(ing.mealId);
-  revalidatePath("/week");
-  revalidatePath("/list", "layout");
-  if (ing.mealId) revalidatePath(`/meals/${ing.mealId}`);
+  await rebuildWeeks({ mealId: ing.mealId, sideId: ing.sideId });
+  revalidateApp();
 }
 
 export async function deleteMeal(mealId: string) {
@@ -234,6 +227,6 @@ export async function deleteMeal(mealId: string) {
     await rebuildWeek(weekId);
   }
 
-  revalidatePath("/week");
+  revalidateApp();
   redirect("/week");
 }

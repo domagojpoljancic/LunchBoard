@@ -88,7 +88,7 @@ export function WeekBoard({
           <>
             <button
               type="button"
-              className="btn-text md:hidden"
+              className="btn-text xl:hidden"
               onClick={() => setLibraryOpen(true)}
             >
               Meals

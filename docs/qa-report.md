@@ -6,7 +6,7 @@ Date: 2026-10-03
 
 | Check | Result |
 | --- | --- |
-| `npm test` (15 tests) | Pass |
+| `npm test` (21 tests) | Pass |
 | `npm run build` | Pass |
 | Seed twice → 1 user, 12 meals | Pass |
 | Smoke: Bolognese ×6 → beef mince 900 g | Pass |

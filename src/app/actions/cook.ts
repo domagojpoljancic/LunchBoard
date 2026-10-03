@@ -1,7 +1,7 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
+import { revalidateApp } from "@/lib/revalidate-app";
 import { requireUser } from "@/lib/session";
 
 export async function logCook(dayId: string) {
@@ -16,8 +16,7 @@ export async function logCook(dayId: string) {
     data: { cookCount: { increment: 1 } },
   });
 
-  revalidatePath(`/cook/${dayId}`);
-  revalidatePath("/week");
+  revalidateApp();
 }
 
 export async function acceptConfidenceNudge(mealId: string) {
@@ -38,8 +37,7 @@ export async function acceptConfidenceNudge(mealId: string) {
       nudgeDismissedAtCookCount: meal.cookCount,
     },
   });
-  revalidatePath("/week");
-  revalidatePath(`/meals/${mealId}`);
+  revalidateApp();
 }
 
 export async function dismissConfidenceNudge(mealId: string) {
@@ -52,7 +50,7 @@ export async function dismissConfidenceNudge(mealId: string) {
     where: { id: mealId },
     data: { nudgeDismissedAtCookCount: meal.cookCount },
   });
-  revalidatePath(`/meals/${mealId}`);
+  revalidateApp();
 }
 
 export async function setTimezone(timezone: string) {

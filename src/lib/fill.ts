@@ -15,6 +15,8 @@ export type FillMeal = ShelfMeal & {
   totalMinutes: number | null;
   defaultVariantId: string;
   defaultSideIds: string[];
+  /** Hands-on minutes of sides that start selected. */
+  sideActiveMinutes?: number;
 };
 
 export type FillPlacement = {
@@ -29,7 +31,7 @@ function fitsWindow(meal: FillMeal, prepWindow: string): boolean {
     prepWindow,
     mealActiveMinutes: meal.activeMinutes,
     mealTotalMinutes: meal.totalMinutes,
-    sideActiveMinutes: [],
+    sideActiveMinutes: meal.sideActiveMinutes ? [meal.sideActiveMinutes] : [],
   }).warn;
 }
 

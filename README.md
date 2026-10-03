@@ -35,10 +35,13 @@ Or run **`/build-lunchboard`**. Spec: [CURSOR_ONE_CLICK.md](CURSOR_ONE_CLICK.md)
 
 ```bash
 npm install
+cp .env.example .env
 npx prisma migrate dev
 npx prisma db seed
 npm run dev
 ```
+
+Set `AUTH_SECRET` in `.env` to any long random string before you sign in.
 
 Local sign-in:
 
