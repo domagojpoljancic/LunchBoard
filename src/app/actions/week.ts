@@ -1,9 +1,9 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { fillEmptyDays, type FillMeal } from "@/lib/fill";
 import { rebuildWeek } from "@/lib/rebuild";
+import { revalidateApp } from "@/lib/revalidate-app";
 import { requireUser } from "@/lib/session";
 import { ensureWeek } from "@/lib/week-service";
 
@@ -46,8 +46,7 @@ export async function placeMealOnDay(dayId: string, mealId: string) {
   });
 
   await rebuildWeek(day.weekId);
-  revalidatePath(`/week/${day.week.weekStart}`);
-  revalidatePath(`/list/${day.week.weekStart}`);
+  revalidateApp();
 }
 
 export async function clearDay(dayId: string) {
@@ -61,8 +60,7 @@ export async function clearDay(dayId: string) {
     });
   });
   await rebuildWeek(day.weekId);
-  revalidatePath(`/week/${day.week.weekStart}`);
-  revalidatePath(`/list/${day.week.weekStart}`);
+  revalidateApp();
 }
 
 export async function updateDayEnabled(dayId: string, enabled: boolean) {
@@ -70,8 +68,7 @@ export async function updateDayEnabled(dayId: string, enabled: boolean) {
   const day = await ownedDay(dayId, user.id);
   await prisma.dayPlan.update({ where: { id: dayId }, data: { enabled } });
   await rebuildWeek(day.weekId);
-  revalidatePath(`/week/${day.week.weekStart}`);
-  revalidatePath(`/list/${day.week.weekStart}`);
+  revalidateApp();
 }
 
 export async function updateDayServings(dayId: string, servings: number) {
@@ -83,8 +80,7 @@ export async function updateDayServings(dayId: string, servings: number) {
     data: { servings: next },
   });
   await rebuildWeek(day.weekId);
-  revalidatePath(`/week/${day.week.weekStart}`);
-  revalidatePath(`/list/${day.week.weekStart}`);
+  revalidateApp();
 }
 
 export async function updateDayPrepWindow(
@@ -92,9 +88,9 @@ export async function updateDayPrepWindow(
   prepWindow: "EVENING_BEFORE" | "SAME_DAY",
 ) {
   const user = await requireUser();
-  const day = await ownedDay(dayId, user.id);
+  await ownedDay(dayId, user.id);
   await prisma.dayPlan.update({ where: { id: dayId }, data: { prepWindow } });
-  revalidatePath(`/week/${day.week.weekStart}`);
+  revalidateApp();
 }
 
 export async function updateDayVariant(dayId: string, variantId: string) {
@@ -102,8 +98,7 @@ export async function updateDayVariant(dayId: string, variantId: string) {
   const day = await ownedDay(dayId, user.id);
   await prisma.dayPlan.update({ where: { id: dayId }, data: { variantId } });
   await rebuildWeek(day.weekId);
-  revalidatePath(`/week/${day.week.weekStart}`);
-  revalidatePath(`/list/${day.week.weekStart}`);
+  revalidateApp();
 }
 
 export async function setDaySides(dayId: string, sideIds: string[]) {
@@ -118,8 +113,7 @@ export async function setDaySides(dayId: string, sideIds: string[]) {
     }
   });
   await rebuildWeek(day.weekId);
-  revalidatePath(`/week/${day.week.weekStart}`);
-  revalidatePath(`/list/${day.week.weekStart}`);
+  revalidateApp();
 }
 
 export async function dismissDiversity(weekId: string) {
@@ -128,7 +122,7 @@ export async function dismissDiversity(weekId: string) {
     where: { id: weekId, userId: user.id },
     data: { diversityNudgeDismissed: true },
   });
-  revalidatePath("/week");
+  revalidateApp();
 }
 
 export async function fillWeekEmptyDays(weekStart: string) {
@@ -138,7 +132,7 @@ export async function fillWeekEmptyDays(weekStart: string) {
     where: { userId: user.id },
     include: {
       variants: true,
-      mealSides: true,
+      mealSides: { include: { side: true } },
     },
   });
 
@@ -157,6 +151,9 @@ export async function fillWeekEmptyDays(weekStart: string) {
       defaultSideIds: m.mealSides
         .filter((s) => s.defaultSelected)
         .map((s) => s.sideId),
+      sideActiveMinutes: m.mealSides
+        .filter((s) => s.defaultSelected)
+        .reduce((sum, s) => sum + (s.side.activeMinutes ?? 0), 0),
     };
   });
 
@@ -184,7 +181,6 @@ export async function fillWeekEmptyDays(weekStart: string) {
   }
 
   await rebuildWeek(week.id);
-  revalidatePath(`/week/${weekStart}`);
-  revalidatePath(`/list/${weekStart}`);
+  revalidateApp();
   return { placed: placements.length, emptyLeft: fullDays.filter((d) => d.enabled && !d.mealId).length - placements.length };
 }

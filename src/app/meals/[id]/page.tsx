@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { deleteMeal, setConfidence, updateMealBasics } from "@/app/actions/meals";
+import { DeleteMealButton } from "@/components/DeleteMealButton";
 import { IngredientEditor } from "@/components/IngredientEditor";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/session";
@@ -59,7 +60,7 @@ export default async function MealEditorPage({
         />
         <div className="flex flex-wrap gap-2">
           <button
-            type="button"
+            type="submit"
             className="btn-outline"
             formAction={async () => {
               "use server";
@@ -69,7 +70,7 @@ export default async function MealEditorPage({
             I know how to cook this
           </button>
           <button
-            type="button"
+            type="submit"
             className="btn-outline"
             formAction={async () => {
               "use server";
@@ -79,7 +80,7 @@ export default async function MealEditorPage({
             I roughly know this
           </button>
           <button
-            type="button"
+            type="submit"
             className="btn-outline"
             formAction={async () => {
               "use server";
@@ -197,16 +198,13 @@ export default async function MealEditorPage({
         </ol>
       </section>
 
-      <form
+      <DeleteMealButton
+        name={meal.name}
         action={async () => {
           "use server";
           await deleteMeal(meal.id);
         }}
-      >
-        <button type="submit" className="btn-text muted">
-          Delete meal
-        </button>
-      </form>
+      />
     </main>
   );
 }

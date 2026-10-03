@@ -1,7 +1,7 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
+import { revalidateApp } from "@/lib/revalidate-app";
 import { requireUser } from "@/lib/session";
 
 export async function toggleShoppingItem(itemId: string, checked: boolean) {
@@ -15,7 +15,7 @@ export async function toggleShoppingItem(itemId: string, checked: boolean) {
     where: { id: itemId },
     data: { checked },
   });
-  revalidatePath(`/list/${item.week.weekStart}`);
+  revalidateApp();
 }
 
 export async function togglePantryItem(itemId: string, checked: boolean) {
@@ -29,5 +29,5 @@ export async function togglePantryItem(itemId: string, checked: boolean) {
     where: { id: itemId },
     data: { checked },
   });
-  revalidatePath(`/list/${item.week.weekStart}`);
+  revalidateApp();
 }

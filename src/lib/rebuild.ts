@@ -95,11 +95,32 @@ export async function rebuildWeek(weekId: string) {
 }
 
 export async function rebuildWeeksForMeal(mealId: string) {
-  const days = await prisma.dayPlan.findMany({
-    where: { mealId },
-    select: { weekId: true },
-  });
-  const weekIds = [...new Set(days.map((d) => d.weekId))];
+  await rebuildWeeks({ mealId });
+}
+
+/** Rebuild every week that places this meal or selects this side. */
+export async function rebuildWeeks(target: {
+  mealId?: string | null;
+  sideId?: string | null;
+}) {
+  const weekIds = new Set<string>();
+
+  if (target.mealId) {
+    const days = await prisma.dayPlan.findMany({
+      where: { mealId: target.mealId },
+      select: { weekId: true },
+    });
+    for (const day of days) weekIds.add(day.weekId);
+  }
+
+  if (target.sideId) {
+    const links = await prisma.dayPlanSide.findMany({
+      where: { sideId: target.sideId },
+      select: { dayPlan: { select: { weekId: true } } },
+    });
+    for (const link of links) weekIds.add(link.dayPlan.weekId);
+  }
+
   for (const weekId of weekIds) {
     await rebuildWeek(weekId);
   }

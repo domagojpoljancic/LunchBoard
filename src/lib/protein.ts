@@ -45,8 +45,12 @@ export function formatAmount(
   quantity: number | null | undefined,
   unit: string | null | undefined,
 ): string {
-  if (quantity == null) return "";
-  if (unit === "G") return `${quantity} g`;
-  if (unit === "ML") return `${quantity} ml`;
-  return String(quantity);
+  if (quantity == null || Number.isNaN(quantity)) return "";
+  const rounded =
+    Math.abs(quantity - Math.round(quantity)) < 0.001
+      ? Math.round(quantity)
+      : Math.round(quantity * 10) / 10;
+  if (unit === "G") return `${rounded} g`;
+  if (unit === "ML") return `${rounded} ml`;
+  return String(rounded);
 }

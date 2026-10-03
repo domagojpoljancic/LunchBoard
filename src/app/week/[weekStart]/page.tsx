@@ -1,6 +1,8 @@
+import { redirect } from "next/navigation";
 import { WeekBoard } from "@/components/WeekBoard";
 import { loadBoard } from "@/lib/board-data";
 import { requireUser } from "@/lib/session";
+import { normalizeWeekStart } from "@/lib/weeks";
 
 export default async function WeekPage({
   params,
@@ -8,8 +10,12 @@ export default async function WeekPage({
   params: Promise<{ weekStart: string }>;
 }) {
   const { weekStart } = await params;
+  const normalized = normalizeWeekStart(weekStart);
+  if (!normalized) redirect("/week");
+  if (normalized !== weekStart) redirect(`/week/${normalized}`);
+
   const user = await requireUser();
-  const board = await loadBoard(user.id, weekStart);
+  const board = await loadBoard(user.id, normalized);
 
   return (
     <WeekBoard
