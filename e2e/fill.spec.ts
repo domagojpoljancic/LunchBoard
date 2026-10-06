@@ -7,11 +7,17 @@ test("fill keeps a placed day and fills the rest", async ({ page }) => {
   await skipOnboarding(page);
 
   for (const name of ["Bolognese", "Bean and tuna salad"]) {
-    const mark = page.getByRole("button", { name: `Mark ${name} as known` });
-    if (await mark.count()) {
-      await mark.first().click();
-      await page.waitForTimeout(600);
-    }
+    const mark = page.getByRole("button", {
+      name: `Mark ${name} as known`,
+      exact: true,
+    });
+    await mark.click();
+    await expect(
+      page.getByRole("button", {
+        name: `${name}: marked as known`,
+        exact: true,
+      }),
+    ).toBeVisible({ timeout: 15000 });
   }
 
   await gotoWeekOffset(page, 8);

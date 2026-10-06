@@ -41,6 +41,9 @@ export function MealTicket({
     <div
       role="button"
       tabIndex={0}
+      aria-label={
+        meal.variantLabel ? `${meal.name}, ${meal.variantLabel}` : meal.name
+      }
       onClick={onSelect}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
@@ -74,38 +77,58 @@ export function MealTicket({
               {confidenceLabel(meal.confidence)}
             </span>
           </span>
-          {knowToggle ? (
-            <button
-              type="button"
-              disabled={knowToggle.pending}
-              aria-label={
-                knowToggle.known
-                  ? `${meal.name}: marked as known`
-                  : `Mark ${meal.name} as known`
-              }
-              aria-pressed={knowToggle.known}
-              className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 ${
-                knowToggle.known
-                  ? "border-[var(--ink)] bg-[var(--ink)] text-[var(--paper)]"
-                  : "border-[var(--line)] bg-transparent text-transparent"
-              } ${knowToggle.pending ? "opacity-50" : ""}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                knowToggle.onToggle();
-              }}
-            >
-              <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
-                <path
-                  d="M2.5 6.2 5 8.5 9.5 3.5"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </button>
-          ) : null}
+          <span className="flex shrink-0 items-center gap-1">
+            {knowToggle ? (
+              <button
+                type="button"
+                disabled={knowToggle.pending}
+                aria-label={
+                  knowToggle.known
+                    ? `${meal.name}: marked as known`
+                    : `Mark ${meal.name} as known`
+                }
+                aria-pressed={knowToggle.known}
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 ${
+                  knowToggle.known
+                    ? "border-[var(--ink)] bg-[var(--ink)] text-[var(--paper)]"
+                    : "border-[var(--line)] bg-transparent text-transparent"
+                } ${knowToggle.pending ? "opacity-50" : ""}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  knowToggle.onToggle();
+                }}
+              >
+                <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
+                  <path
+                    d="M2.5 6.2 5 8.5 9.5 3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            ) : null}
+            {editHref ? (
+              <Link
+                href={editHref}
+                aria-label={`Edit ${meal.name}`}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--line)] bg-[var(--card)] text-[var(--muted)] opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden>
+                  <path
+                    d="M8.2 2.4 11.6 5.8 5 12.4H1.6V9Z"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.4"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </Link>
+            ) : null}
+          </span>
         </span>
         {meal.hasMultipleVariants && meal.variantLabel ? (
           onCycleVariant ? (
@@ -127,24 +150,6 @@ export function MealTicket({
         ) : null}
         {footer}
       </span>
-      {editHref ? (
-        <Link
-          href={editHref}
-          aria-label={`Edit ${meal.name}`}
-          className="absolute right-2 bottom-2 flex h-8 w-8 items-center justify-center rounded-full border border-[var(--line)] bg-[var(--card)] text-[var(--muted)] opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden>
-            <path
-              d="M8.2 2.4 11.6 5.8 5 12.4H1.6V9Z"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.4"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </Link>
-      ) : null}
     </div>
   );
 }

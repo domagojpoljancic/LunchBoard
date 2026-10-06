@@ -51,13 +51,16 @@ Shelves are computed, not stored. Rules are in `docs/02-data-and-logic.md`.
 
 Every meal and every side can gain, lose, and edit ingredients.
 
-Each ingredient has a name, an optional amount, a unit (`G`, `ML`, `PIECE`), and a role (`BUY` or `PANTRY`).
+Each ingredient has a name, an optional amount, a unit (`G`, `ML`, `PIECE`, `BUNCH`), and a role (`BUY` or `PANTRY`).
 
 - An ingredient on a protein option is included only when that option is selected for the day.
 - Shared ingredients are included for every option.
 - New ingredients default to `BUY`.
 - If the name is in the cupboard dictionary, the default role is `PANTRY` and the row says so. The user can switch it.
-- Fresh onion, garlic, ginger, and basil are buy items unless the user moves them.
+- Fresh onion, garlic, ginger, and basil are buy items unless the user moves them. None of them are in
+  the cupboard dictionary, so a line the user types is `BUY`. The starter meals are the one exception:
+  where they list garlic or ginger as `PANTRY` they mean the dried or jar measure the cook already
+  keeps, which `docs/05-starter-meals.md` spells out.
 
 Edits belong to the user. Re-seeding does not overwrite them.
 

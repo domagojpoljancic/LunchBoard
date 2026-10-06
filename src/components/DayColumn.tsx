@@ -95,6 +95,7 @@ export function DayColumn({
           type="button"
           className="btn-text muted shrink-0 text-sm"
           onClick={() => updateDayEnabled(day.id, false)}
+          aria-label={`Turn off ${weekdayLabel(day.date)}`}
         >
           Turn off
         </button>
