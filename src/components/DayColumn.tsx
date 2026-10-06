@@ -65,18 +65,16 @@ export function DayColumn({
 
   if (!day.enabled) {
     return (
-      <section className="sheet flex min-h-[120px] flex-col items-center gap-2 p-2 md:min-h-[70vh] md:w-11 md:shrink-0 md:px-1 md:py-3">
-        <div className="text-center md:writing-mode-vertical">
-          <div className="section-label text-[10px] md:rotate-180 md:[writing-mode:vertical-rl]">
-            {weekdayLabel(day.date).slice(0, 1)}
-          </div>
-          <div className="font-display text-lg md:rotate-180 md:[writing-mode:vertical-rl]">
-            {dayNumber(day.date)}
-          </div>
+      <section className="sheet flex min-h-[120px] flex-col items-center justify-center gap-2 p-2 md:min-h-[70vh] md:w-11 md:shrink-0 md:justify-start md:px-0 md:py-3">
+        <div className="section-label text-[10px] leading-none">
+          {weekdayLabel(day.date).slice(0, 1)}
+        </div>
+        <div className="font-display text-lg leading-none">
+          {dayNumber(day.date)}
         </div>
         <button
           type="button"
-          className="btn-text muted px-1 text-xs"
+          className="btn-text muted min-h-0 px-0 py-2 text-xs md:mt-1"
           onClick={() => updateDayEnabled(day.id, true)}
           aria-label={`Turn on ${weekdayLabel(day.date)}`}
         >
