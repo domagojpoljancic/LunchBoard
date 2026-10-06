@@ -110,7 +110,9 @@ From 1100px wide:
 
 Below 1100px and above 800px the library can sit above the board. Below 800px:
 
-- Days are a horizontal scroll-snap row. Each column is `min(78vw, 320px)`.
+- Days are a vertical stack of full-width day cards. The page never scrolls sideways. (This replaces
+  the earlier horizontal scroll-snap row, by the call in `docs/10-next-plan.md`. The sideways scroll
+  strip survives on desktop, inside the board, when the enabled columns do not fit.)
 - Library is closed. A **Meals** button opens it as a full-height sheet.
 - Lists stack: To buy, then Cupboard.
 - Cook view is already one column.
