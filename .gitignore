@@ -9,3 +9,11 @@ dist/
 prisma/dev.db
 prisma/dev.db-journal
 coverage/
+
+# E2E
+/prisma/e2e.db
+/prisma/e2e.db-journal
+/e2e-artifacts/
+/e2e-report/
+/test-results/
+/playwright-report/

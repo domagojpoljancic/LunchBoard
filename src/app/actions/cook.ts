@@ -105,11 +105,14 @@ export async function dismissConfidenceNudge(mealId: string) {
 
 export async function setTimezone(timezone: string) {
   const parsed = timezoneSchema.parse({ timezone });
-  const user = await requireUser();
-  if (user.timezone === "UTC") {
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { timezone: parsed.timezone },
-    });
-  }
+  const { auth } = await import("@/auth");
+  const session = await auth();
+  const email = session?.user?.email;
+  if (!email) return;
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user || user.timezone !== "UTC") return;
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { timezone: parsed.timezone },
+  });
 }
