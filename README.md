@@ -41,7 +41,7 @@ Say **"start next plan"**, or run **`/build-next`**. Spec: [docs/10-next-plan.md
 | Fill empty days | **Works** | Known → similar → repeat last; TRY_NEW tag |
 | Onboarding | **Works** | First-run “what can you cook?” |
 | Leftover days | **Works** | Opt-in from the day sheet |
-| E2E + CI | **Works** | 8 Playwright specs + GitHub Actions artifacts |
+| E2E + CI | **Works** | 9 Playwright tests, typecheck and lint in CI, screenshot artifacts |
 | Meal editor: proteins/sides/steps edit | **Partial** | Basics + ingredients; attach/create side and step edit still light |
 | Drag to place | **TBD** | Click-to-place and keyboard 1–7 remain |
 | Hosted preview URL | **TBD** | Needs Postgres `DATABASE_URL` + `AUTH_SECRET` (+ Vercel) |

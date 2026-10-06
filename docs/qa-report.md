@@ -10,7 +10,7 @@ Date: 2026-10-06 (standards audit, after the next-plan merge)
 | `npx next lint` | Pass, no warnings |
 | `npm test` (50 tests, 10 files) | Pass |
 | `npm run build` | Pass |
-| `npm run e2e` (8 Playwright specs) | Pass |
+| `npm run e2e` (9 Playwright tests) | Pass |
 | `npm audit --omit=dev` | 2 open: high + moderate, both build-time `postcss` inside `next` |
 | Seed twice → 1 user, 12 meals | Pass (`tests/seed.test.ts`) |
 
@@ -22,7 +22,7 @@ Date: 2026-10-06 (standards audit, after the next-plan merge)
 | `plan` | Place Bolognese → the list shows beef mince |
 | `board` | 3 portions with pasta on and green salad off; a library selection does not replace a filled day; portions 6 → beef mince 900 g; vegan mince → 720 g and beef mince gone; At lunch warns and keeps the meal; day off drops its ingredients and keeps the meal |
 | `carry` | Ticking a line in week N removes it from week N+1 live |
-| `cook` | One cook per day, then Cooked · Undo |
+| `cook` | One cook per day, then Cooked · Undo; a recipe meal shows Steps, a meal the cook knows shows Keypoints and no Steps |
 | `fill` | Marking two meals known, then Fill, keeps the placed day and fills the rest |
 | `layout` | Selected `.seg-active` contrast; 390 px never scrolls sideways |
 | `screens` | Screenshots at 1440 / 390 under `e2e-artifacts/screens/`, copied to `docs/screens/audit-2026-10-06/` |
@@ -36,7 +36,7 @@ Date: 2026-10-06 (standards audit, after the next-plan merge)
 | The library ticket's edit pencil sat on top of the know toggle, so marking a meal known could not be tapped | Both affordances now share one row in the ticket header |
 | A meal ticket's accessible name swallowed every control inside it | The ticket carries an explicit `aria-label` of the meal (and variant) |
 | Turn off had five identical accessible names, one per day | `aria-label` names the day |
-| `npm run e2e` could fail prerendering `/login` from a warm `.next` | `scripts/e2e-server.sh` clears `.next` before building |
+| `npm run e2e` could fail prerendering `/login` from a warm `.next` | The E2E server builds cold into its own `.next-e2e`, via `distDir` in `next.config.ts`, so it cannot pick up stale chunks or fight a dev server for the shared tree |
 | `docs/00-decisions.md` listed three units, and read as if garlic contradicted the seed | Lists `BUNCH`; spells out the dried/jar exception |
 | `docs/04-visual-design.md` still asked for a sideways day strip on a phone | Records the vertical stack and where the call was made |
 
@@ -70,7 +70,7 @@ Date: 2026-10-06 (standards audit, after the next-plan merge)
 | `npm audit --omit=dev`: high `postcss` (GHSA-qx2v-qp2m-jg93, GHSA-6g55-p6wh-862q, GHSA-fxqj-rqcc-2cmp, GHSA-r28c-9q8g-f849) and the moderate `next` that depends on it | Only `next@16.3.8` clears them, which is a breaking major. The reachable surface is build-time CSS stringify and `sourceMappingURL` handling, over CSS this repo authors itself, so there is no request-time exposure. Upgrading is its own change with its own test pass. |
 | Removing or adding an ingredient on a meal, and the Burrata pasta create flow | Covered by reading, not by a test. The editor is `Partial` anyway, so these wait for the editor work. |
 | A cupboard tick not appearing on the next week | `rebuildWeek` writes pantry rows fresh each week and never carries `checked`, but there is no test pinning it. |
-| The cook view's steps-versus-keypoints switch, and the three-cook nudge | `CookView` branches on `meal.confidence` and `cookCount >= nudgeDismissedAtCookCount + 3`, and `tests/cook.test.ts` covers the counting, but nothing renders the nudge in a test. |
+| The three-cook nudge, Not now, and Yes | `CookView` branches on `cookCount >= nudgeDismissedAtCookCount + 3`, and `tests/cook.test.ts` covers the counting, but reaching the nudge needs three cooks on three different days, which no test drives yet. |
 | Visible focus on the prep control, the portion stepper, and list checkboxes | There is one `:focus-visible` rule in `@layer base`, so it applies, but no test asserts the outline. |
 
 `docs/07-definition-of-done.md` ticks only what one of these checks or a committed screenshot covers.
