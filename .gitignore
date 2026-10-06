@@ -19,3 +19,6 @@ coverage/
 /e2e-report/
 /test-results/
 /playwright-report/
+
+# Next.js regenerates this on every build, and it points at whichever distDir ran last.
+next-env.d.ts
