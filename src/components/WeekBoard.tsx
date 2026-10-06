@@ -13,6 +13,7 @@ import { DaySheet, type SideOption } from "@/components/DaySheet";
 import { Library, type LibraryMeal } from "@/components/Library";
 import { TopBar } from "@/components/TopBar";
 import { proteinLabel } from "@/lib/protein";
+import { weekdayShort } from "@/lib/weeks";
 
 export type BoardDay = DayView & {
   suggestedSides: SideOption[];
@@ -44,6 +45,23 @@ export function WeekBoard({
 
   const selectedMeal = meals.find((m) => m.id === selectedId) ?? null;
   const openDay = days.find((d) => d.id === openDayId) ?? null;
+
+  function leftoverSourcesFor(day: BoardDay) {
+    if (day.meal && !day.leftoverOfDayId) return [];
+    return days
+      .filter((d) => {
+        if (!d.enabled || !d.meal || d.leftoverOfDayId) return false;
+        if (d.date >= day.date) return false;
+        const claimed = days.filter(
+          (x) => x.leftoverOfDayId === d.id && x.id !== day.id,
+        ).length;
+        return d.servings - 1 - claimed >= 1;
+      })
+      .map((d) => ({
+        id: d.id,
+        label: weekdayShort(d.date),
+      }));
+  }
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -183,13 +201,19 @@ export function WeekBoard({
                   day={day}
                   selectedMealName={selectedMeal?.name ?? null}
                   onEmptyClick={() => {
-                    if (!selectedId) return;
-                    startTransition(async () => {
-                      await placeMealOnDay(day.id, selectedId);
+                    if (selectedId) {
+                      startTransition(async () => {
+                        await placeMealOnDay(day.id, selectedId);
+                        setOpenDayId(day.id);
+                        setSelectedId(null);
+                        setReplacing(false);
+                      });
+                      return;
+                    }
+                    if (leftoverSourcesFor(day).length) {
                       setOpenDayId(day.id);
-                      setSelectedId(null);
                       setReplacing(false);
-                    });
+                    }
                   }}
                   onFilledClick={() => {
                     setOpenDayId(day.id);
@@ -207,6 +231,7 @@ export function WeekBoard({
             sides={openDay.suggestedSides}
             replacing={replacing}
             selectedMealId={selectedId}
+            leftoverSources={leftoverSourcesFor(openDay)}
             onClose={() => {
               setOpenDayId(null);
               setReplacing(false);

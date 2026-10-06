@@ -69,7 +69,8 @@ Shared sides are created once and linked.
 - method: `TRAY` · cuisine: `mediterranean` · active 25 · total 45 · completePlate: true
 - Variant: **Chicken** `WHITE_MEAT` default, chicken breast 450 G BUY
 - Shared BUY: quinoa 180 G, broccoli 250 G, zucchini 1 PIECE, cucumber 1 PIECE, plain yogurt 200 G
-- Pantry: olive oil, lemon, garlic, salt, dried oregano
+- Shared BUY: lemon 1 PIECE
+- Pantry: olive oil, garlic, salt, dried oregano
 - Sides: none
 - Keypoints: Chicken is done at a clear center. Quinoa is tender with a little bite. Lemon at the end.
 - Steps:
@@ -99,7 +100,8 @@ Shared sides are created once and linked.
 - method: `ASSEMBLE` · cuisine: `mediterranean` · active 20 · total 20 · completePlate: true
 - Variants: **Tuna** `FISH` default, tuna 240 G BUY. **Chicken** `WHITE_MEAT`, chicken breast 400 G BUY.
 - Shared BUY: cannellini beans 240 G, cherry tomatoes 200 G, red onion 1 PIECE, parsley 1 PIECE
-- Pantry: olive oil, lemon, salt, black pepper
+- Shared BUY: lemon 1 PIECE
+- Pantry: olive oil, salt, black pepper
 - Sides: none
 - Keypoints: Drain the beans and the tuna well. Dress it so it shines, not so it pools. Rest five minutes.
 - Steps:
@@ -116,7 +118,8 @@ For the chicken option, the step still reads. The ingredient line is chicken, no
 - method: `ASSEMBLE` · cuisine: `mexican` · active 30 · total 35 · completePlate: true
 - Variant: **Chicken** `WHITE_MEAT` default, chicken breast 450 G BUY
 - Shared BUY: rice 180 G, black beans 240 G, sweetcorn 150 G, salsa 150 G, avocado 1 PIECE
-- Pantry: cumin, salt, oil, lime, garlic
+- Shared BUY: lime 1 PIECE (also rice/salsa/etc. as listed)
+- Pantry: cumin, salt, oil, garlic
 - Sides: none
 - Keypoints: Season the chicken, not just the bowl. Avocado goes on at the end. Lime over everything.
 - Steps:
@@ -192,7 +195,8 @@ For the chicken option, the step still reads. The ingredient line is chicken, no
 - method: `TRAY` · cuisine: `mediterranean` · active 20 · total 40 · completePlate: true
 - Variant: **Chickpeas** `VEGAN` default, chickpeas 240 G BUY
 - Shared BUY: red pepper 2 PIECE, red onion 1 PIECE, rice 180 G
-- Pantry: cumin, paprika, salt, olive oil, lemon, garlic
+- Shared BUY: lemon 1 PIECE
+- Pantry: cumin, paprika, salt, olive oil, garlic
 - Sides: yogurt false
 - Keypoints: The tray should brown, not steam. Lemon after roasting. Rice can cook while the oven runs.
 - Steps:

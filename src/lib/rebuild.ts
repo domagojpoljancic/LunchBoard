@@ -5,9 +5,17 @@ import {
   rebuildPantry,
   rebuildShopping,
   type DesiredLine,
+  type ExistingShopping,
 } from "@/lib/list";
+import { nameKey } from "@/lib/name-key";
+import { shiftWeek } from "@/lib/weeks";
 
-export async function rebuildWeek(weekId: string) {
+export async function rebuildWeek(
+  weekId: string,
+  options?: { forwardDepth?: number },
+) {
+  const forwardDepth = options?.forwardDepth ?? 4;
+
   const week = await prisma.week.findUniqueOrThrow({
     where: { id: weekId },
     include: {
@@ -33,6 +41,7 @@ export async function rebuildWeek(weekId: string) {
 
   for (const day of week.days) {
     if (!day.enabled || !day.meal) continue;
+    if (day.leftoverOfDayId) continue;
     const meal = day.meal;
     const defaultVariant =
       meal.variants.find((v) => v.isDefault) ?? meal.variants[0] ?? null;
@@ -59,7 +68,47 @@ export async function rebuildWeek(weekId: string) {
   const buyDesired = merged.filter((d) => d.role === "BUY");
   const pantryDesired = merged.filter((d) => d.role === "PANTRY");
 
-  const shopping = rebuildShopping(week.shoppingItems, buyDesired);
+  const prevStart = shiftWeek(week.weekStart, -1);
+  const prev = await prisma.week.findUnique({
+    where: {
+      userId_weekStart: { userId: week.userId, weekStart: prevStart },
+    },
+    include: { shoppingItems: true },
+  });
+
+  const checkedInThisWeek = new Map(
+    week.shoppingItems.map((i) => [
+      `${i.nameKey}::${i.unit ?? ""}`,
+      i.checked,
+    ]),
+  );
+
+  const carried: ExistingShopping[] = (prev?.shoppingItems ?? [])
+    .filter((i) => !i.checked)
+    .map((item) => {
+      const key = `${item.nameKey || nameKey(item.name)}::${item.unit ?? ""}`;
+      return {
+        name: item.name,
+        nameKey: item.nameKey || nameKey(item.name),
+        quantity: item.quantity,
+        unit: item.unit,
+        checked: checkedInThisWeek.get(key) ?? false,
+        origin: "CARRIED" as const,
+      };
+    });
+
+  const existingPlan: ExistingShopping[] = week.shoppingItems
+    .filter((i) => i.origin !== "CARRIED")
+    .map((i) => ({
+      name: i.name,
+      nameKey: i.nameKey,
+      quantity: i.quantity,
+      unit: i.unit,
+      checked: i.checked,
+      origin: "PLAN" as const,
+    }));
+
+  const shopping = rebuildShopping([...existingPlan, ...carried], buyDesired);
   const pantry = rebuildPantry(week.pantryItems, pantryDesired);
 
   await prisma.$transaction(async (tx) => {
@@ -92,6 +141,19 @@ export async function rebuildWeek(weekId: string) {
       });
     }
   });
+
+  if (forwardDepth > 0) {
+    const nextStart = shiftWeek(week.weekStart, 1);
+    const next = await prisma.week.findUnique({
+      where: {
+        userId_weekStart: { userId: week.userId, weekStart: nextStart },
+      },
+      select: { id: true },
+    });
+    if (next) {
+      await rebuildWeek(next.id, { forwardDepth: forwardDepth - 1 });
+    }
+  }
 }
 
 export async function rebuildWeeksForMeal(mealId: string) {

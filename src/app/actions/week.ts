@@ -4,6 +4,16 @@ import { prisma } from "@/lib/db";
 import { fillEmptyDays, type FillMeal } from "@/lib/fill";
 import { rebuildWeek } from "@/lib/rebuild";
 import { revalidateApp } from "@/lib/revalidate-app";
+import {
+  cuid,
+  dayIdSchema,
+  setDaySidesSchema,
+  updateDayEnabledSchema,
+  updateDayPrepSchema,
+  updateDayServingsSchema,
+  updateDayVariantSchema,
+  weekStartSchema,
+} from "@/lib/schemas";
 import { requireUser } from "@/lib/session";
 import { ensureWeek } from "@/lib/week-service";
 
@@ -20,10 +30,12 @@ async function ownedDay(dayId: string, userId: string) {
 }
 
 export async function placeMealOnDay(dayId: string, mealId: string) {
+  const parsedDay = dayIdSchema.parse({ dayId });
+  const parsedMeal = cuid.parse(mealId);
   const user = await requireUser();
-  const day = await ownedDay(dayId, user.id);
+  const day = await ownedDay(parsedDay.dayId, user.id);
   const meal = await prisma.meal.findFirst({
-    where: { id: mealId, userId: user.id },
+    where: { id: parsedMeal, userId: user.id },
     include: { variants: true, mealSides: true },
   });
   if (!meal) throw new Error("Meal not found");
@@ -38,9 +50,21 @@ export async function placeMealOnDay(dayId: string, mealId: string) {
       data: {
         mealId: meal.id,
         variantId: variant?.id ?? null,
+        cookedAt: null,
+        leftoverOfDayId: null,
+        fillReason: null,
         sides: {
           create: defaultSides.map((s) => ({ sideId: s.sideId })),
         },
+      },
+    });
+    await tx.dayPlan.updateMany({
+      where: { leftoverOfDayId: dayId },
+      data: {
+        mealId: null,
+        variantId: null,
+        leftoverOfDayId: null,
+        cookedAt: null,
       },
     });
   });
@@ -50,13 +74,29 @@ export async function placeMealOnDay(dayId: string, mealId: string) {
 }
 
 export async function clearDay(dayId: string) {
+  const parsed = dayIdSchema.parse({ dayId });
   const user = await requireUser();
-  const day = await ownedDay(dayId, user.id);
+  const day = await ownedDay(parsed.dayId, user.id);
   await prisma.$transaction(async (tx) => {
     await tx.dayPlanSide.deleteMany({ where: { dayPlanId: dayId } });
     await tx.dayPlan.update({
       where: { id: dayId },
-      data: { mealId: null, variantId: null },
+      data: {
+        mealId: null,
+        variantId: null,
+        cookedAt: null,
+        leftoverOfDayId: null,
+        fillReason: null,
+      },
+    });
+    await tx.dayPlan.updateMany({
+      where: { leftoverOfDayId: dayId },
+      data: {
+        mealId: null,
+        variantId: null,
+        leftoverOfDayId: null,
+        cookedAt: null,
+      },
     });
   });
   await rebuildWeek(day.weekId);
@@ -64,20 +104,24 @@ export async function clearDay(dayId: string) {
 }
 
 export async function updateDayEnabled(dayId: string, enabled: boolean) {
+  const parsed = updateDayEnabledSchema.parse({ dayId, enabled });
   const user = await requireUser();
-  const day = await ownedDay(dayId, user.id);
-  await prisma.dayPlan.update({ where: { id: dayId }, data: { enabled } });
+  const day = await ownedDay(parsed.dayId, user.id);
+  await prisma.dayPlan.update({
+    where: { id: dayId },
+    data: { enabled: parsed.enabled },
+  });
   await rebuildWeek(day.weekId);
   revalidateApp();
 }
 
 export async function updateDayServings(dayId: string, servings: number) {
+  const parsed = updateDayServingsSchema.parse({ dayId, servings });
   const user = await requireUser();
-  const day = await ownedDay(dayId, user.id);
-  const next = Math.min(12, Math.max(1, servings));
+  const day = await ownedDay(parsed.dayId, user.id);
   await prisma.dayPlan.update({
     where: { id: dayId },
-    data: { servings: next },
+    data: { servings: parsed.servings },
   });
   await rebuildWeek(day.weekId);
   revalidateApp();
@@ -87,28 +131,48 @@ export async function updateDayPrepWindow(
   dayId: string,
   prepWindow: "EVENING_BEFORE" | "SAME_DAY",
 ) {
+  const parsed = updateDayPrepSchema.parse({ dayId, prepWindow });
   const user = await requireUser();
-  await ownedDay(dayId, user.id);
-  await prisma.dayPlan.update({ where: { id: dayId }, data: { prepWindow } });
+  await ownedDay(parsed.dayId, user.id);
+  await prisma.dayPlan.update({
+    where: { id: dayId },
+    data: { prepWindow: parsed.prepWindow },
+  });
   revalidateApp();
 }
 
 export async function updateDayVariant(dayId: string, variantId: string) {
+  const parsed = updateDayVariantSchema.parse({ dayId, variantId });
   const user = await requireUser();
-  const day = await ownedDay(dayId, user.id);
-  await prisma.dayPlan.update({ where: { id: dayId }, data: { variantId } });
+  const day = await ownedDay(parsed.dayId, user.id);
+  if (!day.mealId) throw new Error("No meal on day");
+  const variant = await prisma.proteinVariant.findFirst({
+    where: { id: parsed.variantId, mealId: day.mealId },
+  });
+  if (!variant) throw new Error("Variant not on this meal");
+  await prisma.dayPlan.update({
+    where: { id: dayId },
+    data: { variantId: parsed.variantId },
+  });
   await rebuildWeek(day.weekId);
   revalidateApp();
 }
 
 export async function setDaySides(dayId: string, sideIds: string[]) {
+  const parsed = setDaySidesSchema.parse({ dayId, sideIds });
   const user = await requireUser();
-  const day = await ownedDay(dayId, user.id);
+  const day = await ownedDay(parsed.dayId, user.id);
+  if (parsed.sideIds.length) {
+    const owned = await prisma.side.count({
+      where: { id: { in: parsed.sideIds }, userId: user.id },
+    });
+    if (owned !== parsed.sideIds.length) throw new Error("Side not found");
+  }
   await prisma.$transaction(async (tx) => {
     await tx.dayPlanSide.deleteMany({ where: { dayPlanId: dayId } });
-    if (sideIds.length) {
+    if (parsed.sideIds.length) {
       await tx.dayPlanSide.createMany({
-        data: sideIds.map((sideId) => ({ dayPlanId: dayId, sideId })),
+        data: parsed.sideIds.map((sideId) => ({ dayPlanId: dayId, sideId })),
       });
     }
   });
@@ -117,17 +181,19 @@ export async function setDaySides(dayId: string, sideIds: string[]) {
 }
 
 export async function dismissDiversity(weekId: string) {
+  const id = cuid.parse(weekId);
   const user = await requireUser();
   await prisma.week.updateMany({
-    where: { id: weekId, userId: user.id },
+    where: { id, userId: user.id },
     data: { diversityNudgeDismissed: true },
   });
   revalidateApp();
 }
 
 export async function fillWeekEmptyDays(weekStart: string) {
+  const parsed = weekStartSchema.parse({ weekStart });
   const user = await requireUser();
-  const week = await ensureWeek(user.id, weekStart);
+  const week = await ensureWeek(user.id, parsed.weekStart);
   const meals = await prisma.meal.findMany({
     where: { userId: user.id },
     include: {
@@ -172,6 +238,9 @@ export async function fillWeekEmptyDays(weekStart: string) {
         data: {
           mealId: p.mealId,
           variantId: p.variantId || null,
+          fillReason: p.reason ?? null,
+          cookedAt: null,
+          leftoverOfDayId: null,
           sides: {
             create: p.sideIds.map((sideId) => ({ sideId })),
           },
@@ -182,5 +251,65 @@ export async function fillWeekEmptyDays(weekStart: string) {
 
   await rebuildWeek(week.id);
   revalidateApp();
-  return { placed: placements.length, emptyLeft: fullDays.filter((d) => d.enabled && !d.mealId).length - placements.length };
+  return {
+    placed: placements.length,
+    emptyLeft:
+      fullDays.filter((d) => d.enabled && !d.mealId).length - placements.length,
+  };
+}
+
+export async function setLeftoverDay(dayId: string, sourceDayId: string | null) {
+  const parsed = dayIdSchema.parse({ dayId });
+  const user = await requireUser();
+  const day = await ownedDay(parsed.dayId, user.id);
+
+  if (!sourceDayId) {
+    await prisma.dayPlan.update({
+      where: { id: day.id },
+      data: {
+        leftoverOfDayId: null,
+        mealId: null,
+        variantId: null,
+        cookedAt: null,
+        fillReason: null,
+      },
+    });
+    await rebuildWeek(day.weekId);
+    revalidateApp();
+    return;
+  }
+
+  const sourceId = cuid.parse(sourceDayId);
+  const source = await ownedDay(sourceId, user.id);
+  if (source.weekId !== day.weekId) throw new Error("Different week");
+  if (!source.mealId || source.leftoverOfDayId) throw new Error("Bad source");
+  if (source.date >= day.date) throw new Error("Source must be earlier");
+
+  const claimed = await prisma.dayPlan.count({
+    where: {
+      leftoverOfDayId: source.id,
+      id: { not: day.id },
+    },
+  });
+  const spare = source.servings - 1 - claimed;
+  if (spare < 1) throw new Error("No portions left");
+
+  await prisma.$transaction(async (tx) => {
+    await tx.dayPlanSide.deleteMany({ where: { dayPlanId: day.id } });
+    await tx.dayPlan.update({
+      where: { id: day.id },
+      data: {
+        leftoverOfDayId: source.id,
+        mealId: source.mealId,
+        variantId: source.variantId,
+        servings: 1,
+        prepWindow: source.prepWindow,
+        cookedAt: null,
+        fillReason: "LEFTOVER",
+      },
+    });
+  });
+
+  await rebuildWeek(day.weekId);
+  revalidateApp();
 }

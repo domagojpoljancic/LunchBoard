@@ -35,23 +35,46 @@ export default async function CookPage({
     meal?.variants[0]?.id ??
     null;
 
-  const ingredients = meal
-    ? [
-        ...meal.ingredients.filter(
-          (i) => !i.variantId || i.variantId === variantId,
-        ),
-        ...day.sides.flatMap((s) => s.side.ingredients),
-      ].map((i) => ({
-        name: i.name,
-        quantity: scaleQuantity(
-          i.quantity,
-          i.unit,
-          meal.baseServings,
-          day.servings,
-        ),
-        unit: i.unit,
-      }))
+  const scale = (quantity: number | null, unit: string | null) =>
+    meal
+      ? scaleQuantity(quantity, unit, meal.baseServings, day.servings)
+      : quantity;
+
+  const mealIngredients = meal
+    ? meal.ingredients
+        .filter((i) => !i.variantId || i.variantId === variantId)
+        .filter((i) => i.role !== "PANTRY")
+        .map((i) => ({
+          name: i.name,
+          quantity: scale(i.quantity, i.unit),
+          unit: i.unit,
+        }))
     : [];
+
+  const sideGroups = day.sides.map((link) => ({
+    name: link.side.name,
+    ingredients: link.side.ingredients
+      .filter((i) => i.role !== "PANTRY")
+      .map((i) => ({
+        name: i.name,
+        quantity: scale(i.quantity, i.unit),
+        unit: i.unit,
+      })),
+  }));
+
+  const cupboardNames = new Set<string>();
+  if (meal) {
+    for (const i of meal.ingredients.filter(
+      (ing) => (!ing.variantId || ing.variantId === variantId) && ing.role === "PANTRY",
+    )) {
+      cupboardNames.add(i.name);
+    }
+  }
+  for (const link of day.sides) {
+    for (const i of link.side.ingredients.filter((ing) => ing.role === "PANTRY")) {
+      cupboardNames.add(i.name);
+    }
+  }
 
   const keypoints =
     meal?.steps.filter((s) => s.kind === "KEYPOINT").map((s) => s.body) ?? [];
@@ -63,6 +86,7 @@ export default async function CookPage({
       <CookView
         dayId={day.id}
         weekStart={day.week.weekStart}
+        cookedAt={day.cookedAt?.toISOString() ?? null}
         meal={
           meal
             ? {
@@ -77,7 +101,9 @@ export default async function CookPage({
         servings={day.servings}
         prepWindow={day.prepWindow}
         variantLabel={day.variant?.label ?? null}
-        ingredients={ingredients}
+        mealIngredients={mealIngredients}
+        sideGroups={sideGroups}
+        cupboard={[...cupboardNames]}
         keypoints={keypoints}
         steps={meal?.confidence === "RECIPE" ? steps : []}
       />

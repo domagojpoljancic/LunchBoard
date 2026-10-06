@@ -19,11 +19,14 @@ export type FillMeal = ShelfMeal & {
   sideActiveMinutes?: number;
 };
 
+export type FillReason = "KNOWN" | "ROUGHLY_KNOWN" | "TRY_NEW" | "REPEAT";
+
 export type FillPlacement = {
   dayId: string;
   mealId: string;
   variantId: string;
   sideIds: string[];
+  reason: FillReason;
 };
 
 function fitsWindow(meal: FillMeal, prepWindow: string): boolean {
@@ -46,6 +49,13 @@ function scoreMeal(
   if (!usedProteinGroups.has(meal.defaultProteinGroup)) score += 2;
   if (meal.defaultProteinGroup === "WHITE_MEAT") score += 1;
   return score;
+}
+
+function reasonFor(meal: FillMeal, isRepeat: boolean): FillReason {
+  if (isRepeat) return "REPEAT";
+  if (meal.confidence === "KNOW") return "KNOWN";
+  if (meal.confidence === "PROMPT") return "ROUGHLY_KNOWN";
+  return "TRY_NEW";
 }
 
 function pickFromTier(
@@ -92,6 +102,7 @@ export function fillEmptyDays(
       m.confidence === "RECIPE" && shelfForMeal(m, library) === "SIMILAR",
   );
   const tiers = [know, prompt, similar];
+  const allCandidates = [...know, ...prompt, ...similar];
 
   const placements: FillPlacement[] = [];
 
@@ -99,16 +110,24 @@ export function fillEmptyDays(
     if (day.mealId) continue;
 
     let picked: FillMeal | null = null;
+    let isRepeat = false;
+
     for (const tier of tiers) {
       picked = pickFromTier(tier, day, usedMealIds, usedProteinGroups, false);
       if (picked) break;
     }
-    if (!picked) {
+
+    // Only repeat after every candidate in every tier has been used.
+    if (!picked && usedMealIds.size >= allCandidates.length) {
       for (const tier of tiers) {
         picked = pickFromTier(tier, day, usedMealIds, usedProteinGroups, true);
-        if (picked) break;
+        if (picked) {
+          isRepeat = true;
+          break;
+        }
       }
     }
+
     if (!picked) continue;
 
     usedMealIds.add(picked.id);
@@ -118,6 +137,7 @@ export function fillEmptyDays(
       mealId: picked.id,
       variantId: picked.defaultVariantId,
       sideIds: picked.defaultSideIds,
+      reason: reasonFor(picked, isRepeat),
     });
   }
 

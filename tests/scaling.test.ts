@@ -19,4 +19,9 @@ describe("scaleQuantity", () => {
   it("rounds G under 20 to nearest 1", () => {
     expect(scaleQuantity(10, "G", 3, 4)).toBe(13);
   });
+
+  it("scales bunches like pieces", () => {
+    expect(scaleQuantity(1, "BUNCH", 3, 4)).toBe(1);
+    expect(scaleQuantity(2, "BUNCH", 3, 4)).toBe(3);
+  });
 });

@@ -23,6 +23,8 @@ export type DayView = {
   servings: number;
   prepWindow: string;
   cookedAt?: string | null;
+  fillReason?: string | null;
+  leftoverOfDayId?: string | null;
   meal: null | {
     id: string;
     name: string;
@@ -35,7 +37,6 @@ export type DayView = {
   };
   sideNames: string[];
   warningActive: number | null;
-  fillReason?: string | null;
 };
 
 function cookWhen(day: DayView): string {
@@ -102,7 +103,7 @@ export function DayColumn({
       </div>
 
       {day.meal ? (
-        <div className="space-y-2">
+        <div className={`space-y-2 ${day.leftoverOfDayId ? "opacity-70" : ""}`}>
           <MealTicket
             meal={{
               id: day.meal.id,
@@ -114,72 +115,97 @@ export function DayColumn({
               hasMultipleVariants: day.meal.variants.length > 1,
             }}
             onSelect={onFilledClick}
-            onCycleVariant={() => {
-              const variants = day.meal!.variants;
-              if (variants.length < 2) return;
-              const idx = variants.findIndex(
-                (v) => v.id === day.meal!.variantId,
-              );
-              const next = variants[(idx + 1) % variants.length];
-              updateDayVariant(day.id, next.id);
-            }}
+            onCycleVariant={
+              day.leftoverOfDayId
+                ? undefined
+                : () => {
+                    const variants = day.meal!.variants;
+                    if (variants.length < 2) return;
+                    const idx = variants.findIndex(
+                      (v) => v.id === day.meal!.variantId,
+                    );
+                    const next = variants[(idx + 1) % variants.length];
+                    updateDayVariant(day.id, next.id);
+                  }
+            }
             footer={
               <div className="mt-2 space-y-1">
-                <div className="text-[12px] font-medium text-[var(--muted)]">
-                  {prepWindowLabel(day.prepWindow)} · {day.servings} portions
-                </div>
-                <div className="text-[12px] font-semibold text-[var(--ink)]">
-                  {cookWhen(day)}
-                </div>
+                {day.leftoverOfDayId ? (
+                  <div className="text-[12px] font-semibold text-[var(--muted)]">
+                    Leftovers
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-[12px] font-medium text-[var(--muted)]">
+                      {prepWindowLabel(day.prepWindow)} · {day.servings} portions
+                    </div>
+                    <div className="text-[12px] font-semibold text-[var(--ink)]">
+                      {cookWhen(day)}
+                    </div>
+                  </>
+                )}
+                {day.fillReason === "TRY_NEW" ? (
+                  <div className="text-[11px] font-semibold uppercase tracking-wide text-[var(--warning)]">
+                    New to you
+                  </div>
+                ) : null}
                 {day.sideNames.length ? (
                   <div className="text-[12px] text-[var(--muted)]">
                     {day.sideNames.join(" · ")}
                   </div>
                 ) : null}
                 <div className="flex items-center justify-between gap-2 pt-1">
-                  <Link
-                    href={`/cook/${day.id}`}
-                    className="btn-text px-0 text-sm"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {day.cookedAt ? "Cooked" : "Cook"}
-                  </Link>
+                  {!day.leftoverOfDayId ? (
+                    <Link
+                      href={`/cook/${day.id}`}
+                      className="btn-text px-0 text-sm"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {day.cookedAt ? "Cooked" : "Cook"}
+                    </Link>
+                  ) : (
+                    <span />
+                  )}
                   <div className="hidden items-center gap-1 2xl:flex">
-                    <button
-                      type="button"
-                      className="btn-text h-9 w-9 px-0"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        updateDayServings(
-                          day.id,
-                          Math.max(1, day.servings - 1),
-                        );
-                      }}
-                    >
-                      −
-                    </button>
-                    <span className="font-display w-5 text-center text-lg">
-                      {day.servings}
-                    </span>
-                    <button
-                      type="button"
-                      className="btn-text h-9 w-9 px-0"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        updateDayServings(
-                          day.id,
-                          Math.min(12, day.servings + 1),
-                        );
-                      }}
-                    >
-                      +
-                    </button>
+                    {!day.leftoverOfDayId ? (
+                      <>
+                        <button
+                          type="button"
+                          className="btn-text h-9 w-9 px-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            updateDayServings(
+                              day.id,
+                              Math.max(1, day.servings - 1),
+                            );
+                          }}
+                        >
+                          −
+                        </button>
+                        <span className="font-display w-5 text-center text-lg">
+                          {day.servings}
+                        </span>
+                        <button
+                          type="button"
+                          className="btn-text h-9 w-9 px-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            updateDayServings(
+                              day.id,
+                              Math.min(12, day.servings + 1),
+                            );
+                          }}
+                        >
+                          +
+                        </button>
+                      </>
+                    ) : null}
                   </div>
                 </div>
               </div>
             }
           />
-          {warn ? <CoachSticky>{warn}</CoachSticky> : null}
+          {warn && !day.leftoverOfDayId ? <CoachSticky>{warn}</CoachSticky> : null}
         </div>
       ) : (
         <button

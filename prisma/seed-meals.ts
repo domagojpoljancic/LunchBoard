@@ -352,7 +352,7 @@ const MEALS: MealDef[] = [
       { name: "cannellini beans", quantity: 240, unit: "G", role: "BUY" },
       { name: "cherry tomatoes", quantity: 200, unit: "G", role: "BUY" },
       { name: "red onion", quantity: 1, unit: "PIECE", role: "BUY" },
-      { name: "parsley", quantity: 1, unit: "PIECE", role: "BUY" },
+      { name: "parsley", quantity: 1, unit: "BUNCH", role: "BUY" },
       { name: "olive oil", role: "PANTRY" },
       { name: "lemon", quantity: 1, unit: "PIECE", role: "BUY" },
       { name: "salt", role: "PANTRY" },

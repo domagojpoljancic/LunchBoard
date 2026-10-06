@@ -1,8 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { nameKey } from "@/lib/name-key";
 import { rebuildWeek } from "@/lib/rebuild";
-import { mondayOf, shiftWeek, weekDates } from "@/lib/weeks";
+import { mondayOf, weekDates } from "@/lib/weeks";
 
 export async function ensureWeek(userId: string, weekStart: string) {
   const existing = await prisma.week.findUnique({
@@ -53,30 +52,7 @@ export async function ensureWeek(userId: string, weekStart: string) {
     throw error;
   }
 
-  const prevStart = shiftWeek(weekStart, -1);
-  const prev = await prisma.week.findUnique({
-    where: { userId_weekStart: { userId, weekStart: prevStart } },
-    include: { shoppingItems: true },
-  });
-
-  if (prev) {
-    const carried = prev.shoppingItems.filter((i) => !i.checked);
-    if (carried.length) {
-      await prisma.shoppingItem.createMany({
-        data: carried.map((item, sortOrder) => ({
-          weekId: week.id,
-          name: item.name,
-          nameKey: item.nameKey || nameKey(item.name),
-          quantity: item.quantity,
-          unit: item.unit,
-          checked: false,
-          origin: "CARRIED",
-          sortOrder,
-        })),
-      });
-    }
-  }
-
+  // Live carry-over is applied inside rebuildWeek from the previous week.
   await rebuildWeek(week.id);
 
   return prisma.week.findUniqueOrThrow({

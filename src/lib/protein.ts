@@ -85,5 +85,7 @@ export function formatAmount(
       : Math.round(quantity * 10) / 10;
   if (unit === "G") return `${rounded} g`;
   if (unit === "ML") return `${rounded} ml`;
+  if (unit === "BUNCH") return `${rounded} bunch`;
+  if (unit === "PIECE") return String(rounded);
   return String(rounded);
 }
