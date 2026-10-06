@@ -1,6 +1,13 @@
 # LunchBoard
 
-> **WIP — working name.** Round-2 fix plan is largely implemented on this branch: visual bugs, live carry-over, onboarding, leftovers, cook logging, and CI/E2E. Hosted preview still needs Postgres secrets if you want a public URL.
+> **WIP — working name.** The round-2 fix plan is merged on `main`: visual bugs, live carry-over,
+> onboarding, leftovers, cook logging, and CI/E2E. A standards audit then closed a critical Auth.js
+> advisory, two tap-target bugs, and some doc drift.
+>
+> Still open: the meal editor cannot attach sides or edit steps, there is no drag-to-place, there is no
+> hosted preview (needs Postgres secrets), and `next@15` carries two build-time `postcss` advisories
+> that only a `next@16` major upgrade clears. Eight boxes in
+> [docs/07-definition-of-done.md](docs/07-definition-of-done.md) are still unticked, so the banner stays.
 
 Weekday lunch planning on a board. You keep the meals you know, add your own, place them on the days you are actually home, and get a buy list plus a pantry check.
 
@@ -34,11 +41,12 @@ Say **"start next plan"**, or run **`/build-next`**. Spec: [docs/10-next-plan.md
 | Fill empty days | **Works** | Known → similar → repeat last; TRY_NEW tag |
 | Onboarding | **Works** | First-run “what can you cook?” |
 | Leftover days | **Works** | Opt-in from the day sheet |
-| E2E + CI | **Works** | Playwright + GitHub Actions artifacts |
+| E2E + CI | **Works** | 8 Playwright specs + GitHub Actions artifacts |
 | Meal editor: proteins/sides/steps edit | **Partial** | Basics + ingredients; attach/create side and step edit still light |
 | Drag to place | **TBD** | Click-to-place and keyboard 1–7 remain |
 | Hosted preview URL | **TBD** | Needs Postgres `DATABASE_URL` + `AUTH_SECRET` (+ Vercel) |
 | Google Keep / aisles / photos | **TBD** | Copy list is the bridge for now |
+| `next@16` upgrade | **TBD** | Clears the last two `npm audit` advisories (build-time `postcss`) |
 
 ## Quick start
 
@@ -60,10 +68,13 @@ Local sign-in:
 ## Tests
 
 ```bash
-npm test
+npm test        # 50 unit and DB tests against prisma/test.db
 npm run build
-npm run e2e
+npm run e2e     # Playwright, production build on port 3100, wipes prisma/e2e.db
 ```
+
+`npm run e2e` builds and starts the app itself; do not point it at `npm run dev`. Results and the
+open items are written up in [docs/qa-report.md](docs/qa-report.md).
 
 ## Hosted preview
 
