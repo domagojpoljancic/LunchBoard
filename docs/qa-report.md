@@ -36,7 +36,7 @@ Date: 2026-10-06 (standards audit, after the next-plan merge)
 | The library ticket's edit pencil sat on top of the know toggle, so marking a meal known could not be tapped | Both affordances now share one row in the ticket header |
 | A meal ticket's accessible name swallowed every control inside it | The ticket carries an explicit `aria-label` of the meal (and variant) |
 | Turn off had five identical accessible names, one per day | `aria-label` names the day |
-| `npm run e2e` could fail prerendering `/login` from a warm `.next` | `scripts/e2e-server.sh` clears `.next` before building |
+| `npm run e2e` could fail prerendering `/login` from a warm `.next` | The E2E server builds cold into its own `.next-e2e`, via `distDir` in `next.config.ts`, so it cannot pick up stale chunks or fight a dev server for the shared tree |
 | `docs/00-decisions.md` listed three units, and read as if garlic contradicted the seed | Lists `BUNCH`; spells out the dried/jar exception |
 | `docs/04-visual-design.md` still asked for a sideways day strip on a phone | Records the vertical stack and where the call was made |
 
