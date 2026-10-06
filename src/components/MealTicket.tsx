@@ -33,6 +33,7 @@ export function MealTicket({
   knowToggle?: {
     known: boolean;
     onToggle: () => void;
+    pending?: boolean;
   };
   editHref?: string;
 }) {
@@ -76,6 +77,7 @@ export function MealTicket({
           {knowToggle ? (
             <button
               type="button"
+              disabled={knowToggle.pending}
               aria-label={
                 knowToggle.known
                   ? `${meal.name}: marked as known`
@@ -86,7 +88,7 @@ export function MealTicket({
                 knowToggle.known
                   ? "border-[var(--ink)] bg-[var(--ink)] text-[var(--paper)]"
                   : "border-[var(--line)] bg-transparent text-transparent"
-              }`}
+              } ${knowToggle.pending ? "opacity-50" : ""}`}
               onClick={(e) => {
                 e.stopPropagation();
                 knowToggle.onToggle();

@@ -88,6 +88,55 @@ export function collectDayLines(input: {
   }));
 }
 
+export type PrevWeekLine = {
+  name: string;
+  nameKey: string;
+  quantity: number | null;
+  unit: string | null;
+};
+
+/**
+ * Build the working set passed into `rebuildShopping` for a live week.
+ *
+ * `thisWeekExisting` is week N's own stored shopping rows (before this
+ * rebuild). `prevWeekUnchecked` is week N-1's *current* unchecked lines,
+ * fetched fresh at rebuild time (live carry-over, not a one-time snapshot).
+ *
+ * PLAN rows always come from week N's own state, since they already reflect
+ * the correct amount/checked baseline for this week's plan. CARRIED rows are
+ * rebuilt fresh from the previous week for every key not already covered by
+ * a PLAN row, so a line that both weeks want is never represented twice.
+ */
+export function buildCarriedExisting(
+  thisWeekExisting: ExistingShopping[],
+  prevWeekUnchecked: PrevWeekLine[],
+): ExistingShopping[] {
+  const keyOf = (i: { nameKey: string; unit: string | null }) =>
+    `${i.nameKey}::${i.unit ?? ""}`;
+
+  const planRows: ExistingShopping[] = thisWeekExisting
+    .filter((i) => i.origin !== "CARRIED")
+    .map((i) => ({ ...i, origin: "PLAN" }));
+  const planKeys = new Set(planRows.map(keyOf));
+
+  const checkedByKey = new Map(
+    thisWeekExisting.map((i) => [keyOf(i), i.checked]),
+  );
+
+  const carriedRows: ExistingShopping[] = prevWeekUnchecked
+    .filter((item) => !planKeys.has(keyOf(item)))
+    .map((item) => ({
+      name: item.name,
+      nameKey: item.nameKey,
+      quantity: item.quantity,
+      unit: item.unit,
+      checked: checkedByKey.get(keyOf(item)) ?? false,
+      origin: "CARRIED" as const,
+    }));
+
+  return [...planRows, ...carriedRows];
+}
+
 function qtyGreater(
   a: number | null | undefined,
   b: number | null | undefined,

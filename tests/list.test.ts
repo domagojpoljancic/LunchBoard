@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { mergeLines, rebuildShopping, type DesiredLine } from "@/lib/list";
+import {
+  buildCarriedExisting,
+  mergeLines,
+  rebuildShopping,
+  type DesiredLine,
+  type ExistingShopping,
+} from "@/lib/list";
 import { nameKey } from "@/lib/name-key";
 
 function buy(
@@ -122,5 +128,103 @@ describe("rebuildShopping", () => {
     );
     expect(result[0].checked).toBe(true);
     expect(result[0].quantity).toBe(450);
+  });
+});
+
+describe("buildCarriedExisting", () => {
+  it("carries an unchecked line from the previous week when this week has nothing for it", () => {
+    const result = buildCarriedExisting([], [
+      { name: "onion", nameKey: "onion", quantity: 2, unit: "PIECE" },
+    ]);
+    expect(result).toEqual([
+      {
+        name: "onion",
+        nameKey: "onion",
+        quantity: 2,
+        unit: "PIECE",
+        checked: false,
+        origin: "CARRIED",
+      },
+    ]);
+  });
+
+  it("drops a previously-carried line once it is ticked in this week (open next week, then tick onion this week)", () => {
+    const thisWeekExisting: ExistingShopping[] = [
+      {
+        name: "onion",
+        nameKey: "onion",
+        quantity: 2,
+        unit: "PIECE",
+        checked: false,
+        origin: "CARRIED",
+      },
+    ];
+    // Ticking onion in the current (prev) week means it is no longer unchecked there,
+    // so the next week's rebuild no longer receives it as a carry candidate.
+    const result = buildCarriedExisting(thisWeekExisting, []);
+    expect(result).toEqual([]);
+  });
+
+  it("brings a line back as carried if it is unticked again", () => {
+    const thisWeekExisting: ExistingShopping[] = [];
+    const result = buildCarriedExisting(thisWeekExisting, [
+      { name: "onion", nameKey: "onion", quantity: 2, unit: "PIECE" },
+    ]);
+    expect(result).toEqual([
+      {
+        name: "onion",
+        nameKey: "onion",
+        quantity: 2,
+        unit: "PIECE",
+        checked: false,
+        origin: "CARRIED",
+      },
+    ]);
+  });
+
+  it("does not double count a carried line that this week's plan also needs", () => {
+    const thisWeekExisting: ExistingShopping[] = [
+      {
+        name: "onion",
+        nameKey: "onion",
+        quantity: 1,
+        unit: "PIECE",
+        checked: false,
+        origin: "PLAN",
+      },
+    ];
+    const result = buildCarriedExisting(thisWeekExisting, [
+      { name: "onion", nameKey: "onion", quantity: 1, unit: "PIECE" },
+    ]);
+    expect(result).toHaveLength(1);
+    expect(result[0].origin).toBe("PLAN");
+  });
+
+  it("preserves this week's own checked state for a line that is also carried", () => {
+    const thisWeekExisting: ExistingShopping[] = [
+      {
+        name: "onion",
+        nameKey: "onion",
+        quantity: 1,
+        unit: "PIECE",
+        checked: true,
+        origin: "CARRIED",
+      },
+    ];
+    const result = buildCarriedExisting(thisWeekExisting, [
+      { name: "onion", nameKey: "onion", quantity: 1, unit: "PIECE" },
+    ]);
+    // Week N stores its own checked state for carried lines; ticking a carried
+    // line in week N must not be clobbered by week N-1's (unchecked) state.
+    expect(result).toEqual([
+      {
+        name: "onion",
+        nameKey: "onion",
+        quantity: 1,
+        unit: "PIECE",
+        checked: true,
+        origin: "CARRIED",
+      },
+    ]);
   });
 });

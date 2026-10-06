@@ -11,6 +11,7 @@ import {
   updateDayVariant,
 } from "@/app/actions/week";
 import type { DayView } from "@/components/DayColumn";
+import { useActionBusy } from "@/lib/use-action-busy";
 
 export type SideOption = {
   id: string;
@@ -37,6 +38,8 @@ export function DaySheet({
   onStartReplace: () => void;
   onCancelReplace: () => void;
 }) {
+  const { pending, run } = useActionBusy();
+
   if (!day.meal && !replacing && !(leftoverSources && leftoverSources.length)) {
     return null;
   }
@@ -60,12 +63,14 @@ export function DaySheet({
           <button
             type="button"
             className="btn-primary w-full"
-            disabled={!selectedMealId}
-            onClick={async () => {
+            disabled={!selectedMealId || pending}
+            onClick={() => {
               if (!selectedMealId) return;
-              await placeMealOnDay(day.id, selectedMealId);
-              onCancelReplace();
-              onClose();
+              run(async () => {
+                await placeMealOnDay(day.id, selectedMealId);
+                onCancelReplace();
+                onClose();
+              });
             }}
           >
             Use this meal
@@ -187,9 +192,12 @@ export function DaySheet({
               <button
                 type="button"
                 className="btn-text"
-                onClick={async () => {
-                  await setLeftoverDay(day.id, null);
-                  onClose();
+                disabled={pending}
+                onClick={() => {
+                  run(async () => {
+                    await setLeftoverDay(day.id, null);
+                    onClose();
+                  });
                 }}
               >
                 Clear leftovers
@@ -198,9 +206,12 @@ export function DaySheet({
               <button
                 type="button"
                 className="btn-text"
-                onClick={async () => {
-                  await clearDay(day.id);
-                  onClose();
+                disabled={pending}
+                onClick={() => {
+                  run(async () => {
+                    await clearDay(day.id);
+                    onClose();
+                  });
                 }}
               >
                 Clear day
@@ -218,9 +229,12 @@ export function DaySheet({
               key={source.id}
               type="button"
               className="btn-outline w-full"
-              onClick={async () => {
-                await setLeftoverDay(day.id, source.id);
-                onClose();
+              disabled={pending}
+              onClick={() => {
+                run(async () => {
+                  await setLeftoverDay(day.id, source.id);
+                  onClose();
+                });
               }}
             >
               Eat leftovers from {source.label}

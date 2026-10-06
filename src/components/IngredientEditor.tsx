@@ -151,7 +151,8 @@ export function IngredientEditor({
           onClick={() => {
             const role = defaultRole(name);
             start(async () => {
-              await addIngredient(mealId, {
+              await addIngredient({
+                mealId,
                 name,
                 quantity: quantity.trim() === "" ? null : Number(quantity),
                 unit: unit || null,

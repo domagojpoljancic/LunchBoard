@@ -22,12 +22,19 @@ export const setConfidenceSchema = z.object({
   confidence: confidenceSchema,
 });
 
+export const createMealIngredientSchema = z.object({
+  name: nameSchema,
+  quantity: z.number().min(0).nullable().optional(),
+  unit: unitSchema.optional(),
+  role: roleSchema.optional(),
+});
+
 export const createMealSchema = z.object({
   name: nameSchema,
-  proteinGroup: proteinGroupSchema.optional(),
+  proteinGroup: proteinGroupSchema.nullable().optional(),
   activeMinutes: z.number().int().min(0).max(600).nullable().optional(),
   totalMinutes: z.number().int().min(0).max(1440).nullable().optional(),
-  ingredientsText: z.string().max(4000).optional(),
+  ingredients: z.array(createMealIngredientSchema).min(1),
 });
 
 export const updateMealBasicsSchema = z.object({
@@ -41,15 +48,19 @@ export const updateMealBasicsSchema = z.object({
   baseServings: servingsSchema.optional(),
 });
 
-export const addIngredientSchema = z.object({
-  mealId: cuid,
-  name: nameSchema,
-  quantity: z.number().min(0).nullable(),
-  unit: unitSchema,
-  role: roleSchema,
-  variantId: cuid.nullable().optional(),
-  sideId: cuid.nullable().optional(),
-});
+export const addIngredientSchema = z
+  .object({
+    mealId: cuid.nullable().optional(),
+    sideId: cuid.nullable().optional(),
+    name: nameSchema,
+    quantity: z.number().min(0).nullable(),
+    unit: unitSchema,
+    role: roleSchema,
+    variantId: cuid.nullable().optional(),
+  })
+  .refine((v) => Boolean(v.mealId) !== Boolean(v.sideId), {
+    message: "Provide exactly one of mealId or sideId",
+  });
 
 export const updateIngredientSchema = z.object({
   ingredientId: cuid,

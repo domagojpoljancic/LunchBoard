@@ -40,6 +40,8 @@ The build is done when every box below is true. QA writes the result in `docs/qa
 - [ ] A cupboard tick does not appear on the next week
 - [ ] The buy list is a single list, with Still to buy only when a carried line remains
 - [ ] The cupboard list has names and no amounts
+- [ ] Carry-over is live: ticking or unticking a line in week N re-runs the carry into week N+1 (and up to four weeks further forward) immediately, not only when week N+1 is first opened
+- [ ] A carried line that the new plan also needs merges by the existing rules and is not counted twice
 
 ## Cook
 
@@ -48,6 +50,8 @@ The build is done when every box below is true. QA writes the result in `docs/qa
 - [ ] I cooked this, three times, shows the nudge
 - [ ] Not now hides it until three more cooks
 - [ ] Yes updates confidence
+- [ ] Tapping I cooked this three times on the same day still only counts once; the button then reads Cooked · Undo
+- [ ] Changing or clearing the meal on a cooked day resets that day so it can be cooked again
 
 ## Interface
 
