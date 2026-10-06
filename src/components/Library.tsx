@@ -31,7 +31,8 @@ export function Library({
 }) {
   const [query, setQuery] = useState("");
   const [protein, setProtein] = useState<string>("ALL");
-  const [, startTransition] = useTransition();
+  const [pending, startTransition] = useTransition();
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     return meals.filter((m) => {
@@ -122,9 +123,12 @@ export function Library({
                     }
                     knowToggle={{
                       known,
+                      pending: pending && togglingId === meal.id,
                       onToggle: () => {
-                        startTransition(() => {
-                          setConfidence(meal.id, known ? "RECIPE" : "KNOW");
+                        setTogglingId(meal.id);
+                        startTransition(async () => {
+                          await setConfidence(meal.id, known ? "RECIPE" : "KNOW");
+                          setTogglingId(null);
                         });
                       },
                     }}

@@ -1,11 +1,11 @@
 import { prisma } from "@/lib/db";
 import {
+  buildCarriedExisting,
   collectDayLines,
   mergeLines,
   rebuildPantry,
   rebuildShopping,
   type DesiredLine,
-  type ExistingShopping,
 } from "@/lib/list";
 import { nameKey } from "@/lib/name-key";
 import { shiftWeek } from "@/lib/weeks";
@@ -76,39 +76,28 @@ export async function rebuildWeek(
     include: { shoppingItems: true },
   });
 
-  const checkedInThisWeek = new Map(
-    week.shoppingItems.map((i) => [
-      `${i.nameKey}::${i.unit ?? ""}`,
-      i.checked,
-    ]),
-  );
-
-  const carried: ExistingShopping[] = (prev?.shoppingItems ?? [])
+  const prevUnchecked = (prev?.shoppingItems ?? [])
     .filter((i) => !i.checked)
-    .map((item) => {
-      const key = `${item.nameKey || nameKey(item.name)}::${item.unit ?? ""}`;
-      return {
-        name: item.name,
-        nameKey: item.nameKey || nameKey(item.name),
-        quantity: item.quantity,
-        unit: item.unit,
-        checked: checkedInThisWeek.get(key) ?? false,
-        origin: "CARRIED" as const,
-      };
-    });
+    .map((item) => ({
+      name: item.name,
+      nameKey: item.nameKey || nameKey(item.name),
+      quantity: item.quantity,
+      unit: item.unit,
+    }));
 
-  const existingPlan: ExistingShopping[] = week.shoppingItems
-    .filter((i) => i.origin !== "CARRIED")
-    .map((i) => ({
+  const existingForRebuild = buildCarriedExisting(
+    week.shoppingItems.map((i) => ({
       name: i.name,
       nameKey: i.nameKey,
       quantity: i.quantity,
       unit: i.unit,
       checked: i.checked,
-      origin: "PLAN" as const,
-    }));
+      origin: i.origin,
+    })),
+    prevUnchecked,
+  );
 
-  const shopping = rebuildShopping([...existingPlan, ...carried], buyDesired);
+  const shopping = rebuildShopping(existingForRebuild, buyDesired);
   const pantry = rebuildPantry(week.pantryItems, pantryDesired);
 
   await prisma.$transaction(async (tx) => {

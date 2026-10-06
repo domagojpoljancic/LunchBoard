@@ -7,6 +7,7 @@ import { revalidateApp } from "@/lib/revalidate-app";
 import { rebuildWeeks, rebuildWeeksForMeal } from "@/lib/rebuild";
 import {
   addIngredientSchema,
+  createMealSchema,
   cuid,
   setConfidenceSchema,
   updateIngredientSchema,
@@ -37,11 +38,30 @@ export async function createMeal(input: {
   totalMinutes?: number | null;
 }) {
   const user = await requireUser();
-  const name = input.name.trim();
-  if (!name) throw new Error("Name required");
-  if (!input.ingredients.length) throw new Error("Add at least one ingredient");
+  const parsed = createMealSchema.parse({
+    name: input.name,
+    proteinGroup: (input.proteinGroup as
+      | "BEEF"
+      | "WHITE_MEAT"
+      | "FISH"
+      | "VEGETARIAN"
+      | "VEGAN"
+      | "DAIRY"
+      | "OTHER"
+      | null
+      | undefined) || undefined,
+    activeMinutes: input.activeMinutes ?? null,
+    totalMinutes: input.totalMinutes ?? null,
+    ingredients: input.ingredients.map((ing) => ({
+      name: ing.name,
+      quantity: ing.quantity ?? null,
+      unit: ing.unit ?? null,
+      role: ing.role,
+    })),
+  });
+  const name = parsed.name;
 
-  const group = input.proteinGroup || "OTHER";
+  const group = parsed.proteinGroup || "OTHER";
   const label =
     group === "OTHER"
       ? "No specific protein"
@@ -58,8 +78,8 @@ export async function createMeal(input: {
       method: "OTHER",
       baseServings: 3,
       completePlate: false,
-      activeMinutes: input.activeMinutes ?? null,
-      totalMinutes: input.totalMinutes ?? null,
+      activeMinutes: parsed.activeMinutes ?? null,
+      totalMinutes: parsed.totalMinutes ?? null,
       variants: {
         create: {
           label,
@@ -69,8 +89,8 @@ export async function createMeal(input: {
         },
       },
       ingredients: {
-        create: input.ingredients.map((ing, sortOrder) => ({
-          name: ing.name.trim(),
+        create: parsed.ingredients.map((ing, sortOrder) => ({
+          name: ing.name,
           quantity: ing.quantity ?? null,
           unit: ing.unit ?? null,
           role: ing.role ?? defaultRole(ing.name),
@@ -123,18 +143,18 @@ export async function updateMealBasics(
   revalidateApp();
 }
 
-export async function addIngredient(
-  mealId: string,
-  input: {
-    name: string;
-    quantity?: number | null;
-    unit?: string | null;
-    role?: "BUY" | "PANTRY";
-    variantId?: string | null;
-  },
-) {
+export async function addIngredient(input: {
+  mealId?: string | null;
+  sideId?: string | null;
+  name: string;
+  quantity?: number | null;
+  unit?: string | null;
+  role?: "BUY" | "PANTRY";
+  variantId?: string | null;
+}) {
   const parsed = addIngredientSchema.parse({
-    mealId,
+    mealId: input.mealId ?? null,
+    sideId: input.sideId ?? null,
     name: input.name,
     quantity: input.quantity ?? null,
     unit: (input.unit as "G" | "ML" | "PIECE" | "BUNCH" | null) ?? null,
@@ -142,34 +162,59 @@ export async function addIngredient(
     variantId: input.variantId ?? null,
   });
   const user = await requireUser();
-  const meal = await prisma.meal.findFirst({
-    where: { id: parsed.mealId, userId: user.id },
-  });
-  if (!meal) throw new Error("Meal not found");
 
-  if (parsed.variantId) {
-    const variant = await prisma.proteinVariant.findFirst({
-      where: { id: parsed.variantId, mealId: meal.id },
+  if (parsed.mealId) {
+    const meal = await prisma.meal.findFirst({
+      where: { id: parsed.mealId, userId: user.id },
     });
-    if (!variant) throw new Error("Variant not on this meal");
+    if (!meal) throw new Error("Meal not found");
+
+    if (parsed.variantId) {
+      const variant = await prisma.proteinVariant.findFirst({
+        where: { id: parsed.variantId, mealId: meal.id },
+      });
+      if (!variant) throw new Error("Variant not on this meal");
+    }
+
+    const count = await prisma.ingredient.count({
+      where: { mealId: meal.id, variantId: parsed.variantId ?? null },
+    });
+
+    await prisma.ingredient.create({
+      data: {
+        mealId: meal.id,
+        variantId: parsed.variantId ?? null,
+        name: parsed.name,
+        quantity: parsed.quantity,
+        unit: parsed.unit,
+        role: parsed.role,
+        sortOrder: count,
+      },
+    });
+    await rebuildWeeksForMeal(meal.id);
+  } else if (parsed.sideId) {
+    const side = await prisma.side.findFirst({
+      where: { id: parsed.sideId, userId: user.id },
+    });
+    if (!side) throw new Error("Side not found");
+
+    const count = await prisma.ingredient.count({
+      where: { sideId: side.id },
+    });
+
+    await prisma.ingredient.create({
+      data: {
+        sideId: side.id,
+        name: parsed.name,
+        quantity: parsed.quantity,
+        unit: parsed.unit,
+        role: parsed.role,
+        sortOrder: count,
+      },
+    });
+    await rebuildWeeks({ sideId: side.id });
   }
 
-  const count = await prisma.ingredient.count({
-    where: { mealId: meal.id, variantId: parsed.variantId ?? null },
-  });
-
-  await prisma.ingredient.create({
-    data: {
-      mealId: meal.id,
-      variantId: parsed.variantId ?? null,
-      name: parsed.name,
-      quantity: parsed.quantity,
-      unit: parsed.unit,
-      role: parsed.role,
-      sortOrder: count,
-    },
-  });
-  await rebuildWeeksForMeal(meal.id);
   revalidateApp();
 }
 

@@ -1,13 +1,13 @@
 import type { PrismaClient } from "@prisma/client";
 
-type Ing = {
+export type Ing = {
   name: string;
   quantity?: number | null;
   unit?: string | null;
   role: "BUY" | "PANTRY";
 };
 
-type MealDef = {
+export type MealDef = {
   catalogKey: string;
   name: string;
   method: string;
@@ -27,7 +27,7 @@ type MealDef = {
   steps: string[];
 };
 
-const SIDES: Array<{
+export const SIDES: Array<{
   catalogKey: string;
   name: string;
   activeMinutes: number;
@@ -92,7 +92,7 @@ const SIDES: Array<{
   },
 ];
 
-const MEALS: MealDef[] = [
+export const MEALS: MealDef[] = [
   {
     catalogKey: "bolognese",
     name: "Bolognese",
