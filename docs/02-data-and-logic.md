@@ -291,7 +291,7 @@ Within the same week, recreate pantry rows from the desired names. If a `nameKey
 
 ## New week carry
 
-When creating week N+1, gather unchecked shopping lines from week N, both origins. Pass them into the first rebuild as the existing `CARRIED` set. Do not import checked lines. Do not import pantry ticks.
+The carried set for week N is every **unchecked** shopping line in week N−1 at the moment week N is rebuilt, from both origins. Week N stores its own `checked` state for carried lines. When anything changes week N−1's list (a rebuild or a check toggle), week N is rebuilt if it exists (and up to four weeks forward). Do not snapshot carry-over only at week creation. Do not import checked lines. Do not import pantry ticks.
 
 ## Shelves
 

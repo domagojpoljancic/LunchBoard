@@ -112,4 +112,6 @@ English. Meat, cheese, pasta, grains, and sauces in grams. Liquids in millilitre
 
 ## Out of this build
 
-Dinner as its own plan, photos, aisle sorting, leftover days, offline use, Google Keep, a pantry that remembers stock across weeks, accounts for a second person, drag and drop.
+Dinner as its own plan, photos, aisle sorting, offline use, Google Keep, a pantry that remembers stock across weeks, accounts for a second person, drag and drop.
+
+Leftover days shipped later as an opt-in per day (round-2 plan phase 4). Default remains every day its own cook.

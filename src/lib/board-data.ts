@@ -88,6 +88,9 @@ export async function loadBoard(userId: string, weekStart: string) {
       enabled: day.enabled,
       servings: day.servings,
       prepWindow: day.prepWindow,
+      cookedAt: day.cookedAt?.toISOString() ?? null,
+      fillReason: day.fillReason,
+      leftoverOfDayId: day.leftoverOfDayId,
       meal: meal
         ? {
             id: meal.id,

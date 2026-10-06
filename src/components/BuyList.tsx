@@ -45,6 +45,15 @@ function CheckRow({
   );
 }
 
+function lineText(
+  name: string,
+  quantity: number | null,
+  unit: string | null,
+): string {
+  const amount = formatAmount(quantity, unit);
+  return amount ? `${name} — ${amount}` : name;
+}
+
 export function BuyList({
   planItems,
   carriedItems,
@@ -70,10 +79,34 @@ export function BuyList({
     checked: boolean;
   }>;
 }) {
+  const [copied, setCopied] = useState(false);
+
+  function copyList() {
+    const buy = [...planItems, ...carriedItems]
+      .filter((i) => !i.checked)
+      .map((i) => lineText(i.name, i.quantity, i.unit));
+    const cupboard = pantryItems
+      .filter((i) => !i.checked)
+      .map((i) => i.name);
+    const parts = [...buy];
+    if (cupboard.length) {
+      parts.push("", "Check the cupboard:", ...cupboard);
+    }
+    void navigator.clipboard.writeText(parts.join("\n")).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
   return (
     <div className="mx-auto grid max-w-5xl gap-6 p-4 md:grid-cols-[1.2fr_0.8fr] md:p-6">
       <section className="sheet p-5">
-        <h1 className="font-display mb-4 text-3xl">To buy</h1>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h1 className="font-display text-3xl">To buy</h1>
+          <button type="button" className="btn-outline" onClick={copyList}>
+            {copied ? "Copied" : "Copy list"}
+          </button>
+        </div>
         {planItems.length === 0 && carriedItems.length === 0 ? (
           <p className="text-[var(--muted)]">
             Nothing to buy yet. Place a lunch on the board.

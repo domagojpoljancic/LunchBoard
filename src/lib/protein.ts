@@ -41,6 +41,39 @@ export function confidenceLabel(confidence: string): string {
   return "Recipe";
 }
 
+export function confidenceActionLabel(confidence: string): string {
+  if (confidence === "KNOW") return "I know how to cook this";
+  if (confidence === "PROMPT") return "I roughly know this";
+  return "I need the recipe";
+}
+
+export function methodLabel(method: string): string {
+  switch (method) {
+    case "ONE_POT":
+      return "One pot";
+    case "TRAY":
+      return "Tray";
+    case "PAN":
+      return "Stovetop";
+    case "BAKE":
+      return "Oven";
+    case "ASSEMBLE":
+      return "Assemble";
+    case "SLOW":
+      return "Slow";
+    default:
+      return "Other";
+  }
+}
+
+export function roleLabel(role: string): string {
+  return role === "PANTRY" ? "Cupboard" : "Buy";
+}
+
+export function prepWindowLabel(prepWindow: string): string {
+  return prepWindow === "SAME_DAY" ? "At lunch" : "Night before";
+}
+
 export function formatAmount(
   quantity: number | null | undefined,
   unit: string | null | undefined,
@@ -52,5 +85,7 @@ export function formatAmount(
       : Math.round(quantity * 10) / 10;
   if (unit === "G") return `${rounded} g`;
   if (unit === "ML") return `${rounded} ml`;
+  if (unit === "BUNCH") return `${rounded} bunch`;
+  if (unit === "PIECE") return String(rounded);
   return String(rounded);
 }

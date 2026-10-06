@@ -1,38 +1,48 @@
 # QA report
 
-Date: 2026-10-03
+Date: 2026-10-06 (after next-plan execution)
 
 ## Automated
 
 | Check | Result |
 | --- | --- |
-| `npm test` (21 tests) | Pass |
+| `npm test` (26 tests) | Pass |
 | `npm run build` | Pass |
-| Seed twice → 1 user, 12 meals | Pass |
-| Smoke: Bolognese ×6 → beef mince 900 g | Pass |
-| Smoke: switch to vegan mince → 720 g, beef gone | Pass |
-| `/login` HTTP 200 | Pass |
+| `npm run e2e` (4 Playwright tests) | Pass |
+| Seed twice → 1 user, 12 meals | Pass (unchanged) |
 
-## Definition of done (manual / code-path)
+## E2E coverage
 
-| Box | Result | Notes |
-| --- | --- | --- |
-| Runs scripts and seed | Pass | |
-| Week Mon–Fri on, weekend off | Pass | `ensureWeek` |
-| Place meal, servings, protein swap, list rebuild | Pass | smoke + actions |
-| Ingredient add/remove rebuilds lists | Pass | actions call `rebuildWeeksForMeal` |
-| Carry-over / pantry reset rules | Pass | unit tests + `ensureWeek` |
-| Cook view by confidence | Pass | implemented |
-| Fill empty days does not overwrite | Pass | unit tests + action |
-| Visual system (paper, Fraunces, stripes) | **Fail** (2026-10-06) | Passed on code reading only. Screenshots show unreadable selected toggles, clipped columns, and phone overflow. See `docs/09-review.md` U1–U3 |
-| Copy deck strings used | Pass | major strings from `docs/08-copy.md` |
+| Spec | Result |
+| --- | --- |
+| Login → current Monday | Pass |
+| Place Bolognese → list shows beef mince | Pass |
+| Selected `.seg-active` contrast; 390 px no sideways scroll | Pass |
+| Screenshots at 1440 / 390 | Pass (`e2e-artifacts/screens/`) |
 
-## Non-blocking
+## Round-2 findings
 
-- Meal editor confidence controls are separate form actions; polish later if needed.
-- No browser E2E (Playwright) in this pass — list math covered by Vitest + smoke script.
-- Diversity sticky and cook nudge are implemented; not click-tested in a browser here.
+| Finding | Status |
+| --- | --- |
+| U1 invisible selected text | Fixed (`@layer base`) |
+| U2 narrow columns / weekend width | Fixed (rails + wider enabled days) |
+| U3 mobile header overflow | Fixed (two-row header + day stack) |
+| U4 library clutter | Fixed (circular know + pencil) |
+| U5 editor enums | Fixed (MealBasicsForm labels) |
+| U6 empty-day prep noise | Fixed |
+| C1 stale carry-over | Fixed (live rebuild) |
+| C2 cook spam | Fixed (`cookedAt`) |
+| C3 first-run shelves | Fixed (onboarding) |
+| C4 Fill repeats too early | Fixed |
+| C5 leftover over-buy | Fixed (opt-in leftover days) |
+| C6 cook schedule hidden | Fixed (ticket meta) |
+| C7 editor completeness | Partial (basics + ingredients; protein/side/step editors still light) |
+| C8 copy list | Fixed |
+| C9 bunch unit | Fixed |
+| B1–B3 ownership / Zod / timezone | Fixed |
+| D1–D3 see the app | CI screenshots; hosted URL still needs secrets |
+| U9 drag to place | Deferred (click + keyboard remain) |
 
 ## Blocking open
 
-None for the first usable loop.
+None for merging this plan. Hosted preview waits on Postgres secrets.

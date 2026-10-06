@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Outfit } from "next/font/google";
+import { ActionToastProvider } from "@/components/ActionToast";
+import { TimezoneCapture } from "@/components/TimezoneCapture";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -28,7 +30,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${fraunces.variable} ${outfit.variable} antialiased`}>
-        {children}
+        <ActionToastProvider>
+          <TimezoneCapture />
+          {children}
+        </ActionToastProvider>
       </body>
     </html>
   );

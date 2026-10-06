@@ -30,7 +30,7 @@ export function IngredientEditor({
   const [pending, start] = useTransition();
   const [name, setName] = useState("");
   const [quantity, setQuantity] = useState("");
-  const [unit, setUnit] = useState<"G" | "ML" | "PIECE" | "">("G");
+  const [unit, setUnit] = useState<"G" | "ML" | "PIECE" | "BUNCH" | "">("G");
 
   return (
     <section className="space-y-3">
@@ -70,7 +70,12 @@ export function IngredientEditor({
               onChange={(e) =>
                 start(() =>
                   updateIngredient(ing.id, {
-                    unit: (e.target.value || null) as "G" | "ML" | "PIECE" | null,
+                    unit: (e.target.value || null) as
+                      | "G"
+                      | "ML"
+                      | "PIECE"
+                      | "BUNCH"
+                      | null,
                   }),
                 )
               }
@@ -79,6 +84,7 @@ export function IngredientEditor({
               <option value="G">g</option>
               <option value="ML">ml</option>
               <option value="PIECE">piece</option>
+              <option value="BUNCH">bunch</option>
             </select>
             <div className="grid h-11 grid-cols-2 overflow-hidden rounded-full border border-[var(--line)]">
               {(["BUY", "PANTRY"] as const).map((role) => (
@@ -86,9 +92,7 @@ export function IngredientEditor({
                   key={role}
                   type="button"
                   className={`px-3 text-sm font-semibold ${
-                    ing.role === role
-                      ? "bg-[var(--ink)] text-[var(--card)]"
-                      : ""
+                    ing.role === role ? "seg-active" : "seg-idle"
                   }`}
                   onClick={() =>
                     start(() => updateIngredient(ing.id, { role }))
@@ -136,6 +140,7 @@ export function IngredientEditor({
             <option value="G">g</option>
             <option value="ML">ml</option>
             <option value="PIECE">piece</option>
+            <option value="BUNCH">bunch</option>
             <option value="">—</option>
           </select>
         </label>

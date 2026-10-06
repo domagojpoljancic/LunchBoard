@@ -5,6 +5,7 @@ import {
   clearDay,
   placeMealOnDay,
   setDaySides,
+  setLeftoverDay,
   updateDayPrepWindow,
   updateDayServings,
   updateDayVariant,
@@ -22,6 +23,7 @@ export function DaySheet({
   sides,
   replacing,
   selectedMealId,
+  leftoverSources,
   onClose,
   onStartReplace,
   onCancelReplace,
@@ -30,11 +32,14 @@ export function DaySheet({
   sides: SideOption[];
   replacing: boolean;
   selectedMealId: string | null;
+  leftoverSources?: Array<{ id: string; label: string }>;
   onClose: () => void;
   onStartReplace: () => void;
   onCancelReplace: () => void;
 }) {
-  if (!day.meal && !replacing) return null;
+  if (!day.meal && !replacing && !(leftoverSources && leftoverSources.length)) {
+    return null;
+  }
 
   return (
     <div className="sheet fixed inset-x-0 bottom-0 z-40 max-h-[85vh] overflow-y-auto p-5 md:absolute md:inset-auto md:right-0 md:top-24 md:bottom-6 md:w-[400px]">
@@ -80,9 +85,7 @@ export function DaySheet({
                     key={v.id}
                     type="button"
                     className={`min-h-11 px-2 text-sm font-semibold ${
-                      day.meal?.variantId === v.id
-                        ? "bg-[var(--ink)] text-[var(--card)]"
-                        : ""
+                      day.meal?.variantId === v.id ? "seg-active" : "seg-idle"
                     }`}
                     onClick={() => updateDayVariant(day.id, v.id)}
                   >
@@ -129,9 +132,7 @@ export function DaySheet({
                 key={value}
                 type="button"
                 className={`text-sm font-semibold ${
-                  day.prepWindow === value
-                    ? "bg-[var(--ink)] text-[var(--card)]"
-                    : ""
+                  day.prepWindow === value ? "seg-active" : "seg-idle"
                 }`}
                 onClick={() => updateDayPrepWindow(day.id, value)}
               >
@@ -174,23 +175,57 @@ export function DaySheet({
           </div>
 
           <div className="flex flex-col gap-2">
-            <Link href={`/cook/${day.id}`} className="btn-primary text-center">
-              Cook this
-            </Link>
+            {!day.leftoverOfDayId ? (
+              <Link href={`/cook/${day.id}`} className="btn-primary text-center">
+                Cook this
+              </Link>
+            ) : null}
             <button type="button" className="btn-outline" onClick={onStartReplace}>
               Replace meal
             </button>
+            {day.leftoverOfDayId ? (
+              <button
+                type="button"
+                className="btn-text"
+                onClick={async () => {
+                  await setLeftoverDay(day.id, null);
+                  onClose();
+                }}
+              >
+                Clear leftovers
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="btn-text"
+                onClick={async () => {
+                  await clearDay(day.id);
+                  onClose();
+                }}
+              >
+                Clear day
+              </button>
+            )}
+          </div>
+        </div>
+      ) : leftoverSources && leftoverSources.length ? (
+        <div className="space-y-3">
+          <p className="text-[var(--muted)]">
+            Or eat leftovers from an earlier cook.
+          </p>
+          {leftoverSources.map((source) => (
             <button
+              key={source.id}
               type="button"
-              className="btn-text"
+              className="btn-outline w-full"
               onClick={async () => {
-                await clearDay(day.id);
+                await setLeftoverDay(day.id, source.id);
                 onClose();
               }}
             >
-              Clear day
+              Eat leftovers from {source.label}
             </button>
-          </div>
+          ))}
         </div>
       ) : null}
     </div>

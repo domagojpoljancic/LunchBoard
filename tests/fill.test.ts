@@ -74,4 +74,32 @@ describe("fillEmptyDays", () => {
     const placements = fillEmptyDays(week, [bolognese, chicken]);
     expect(placements[0]?.mealId).toBe("chick");
   });
+
+  it("does not repeat while unused similar meals remain", () => {
+    const similar: FillMeal = {
+      id: "sim",
+      name: "Similar ragu",
+      confidence: "RECIPE",
+      method: "PAN",
+      cuisine: "italian",
+      activeMinutes: 30,
+      totalMinutes: 60,
+      defaultProteinGroup: "BEEF",
+      defaultVariantId: "sim-v",
+      defaultSideIds: [],
+    };
+    const week = days([{ mealId: "bol" }, {}, {}, {}]);
+    const placements = fillEmptyDays(week, [bolognese, similar]);
+    expect(placements[0]?.mealId).toBe("sim");
+    expect(placements[0]?.reason).toBe("TRY_NEW");
+    expect(placements.slice(1).every((p) => p.reason === "REPEAT")).toBe(true);
+  });
+
+  it("repeats only after every candidate is used", () => {
+    const week = days([{}, {}, {}, {}]);
+    const placements = fillEmptyDays(week, [bolognese]);
+    expect(placements).toHaveLength(4);
+    expect(placements.filter((p) => p.reason === "REPEAT")).toHaveLength(3);
+    expect(placements[0]?.reason).toBe("KNOWN");
+  });
 });

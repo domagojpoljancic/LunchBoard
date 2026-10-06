@@ -1,27 +1,39 @@
 "use client";
 
 import Link from "next/link";
+import { useTransition } from "react";
 import {
   acceptConfidenceNudge,
   dismissConfidenceNudge,
   logCook,
+  undoCook,
 } from "@/app/actions/cook";
 import { CoachSticky } from "@/components/CoachSticky";
 import { formatAmount } from "@/lib/protein";
 
+type Ing = {
+  name: string;
+  quantity: number | null;
+  unit: string | null;
+};
+
 export function CookView({
   dayId,
   weekStart,
+  cookedAt,
   meal,
   servings,
   prepWindow,
   variantLabel,
-  ingredients,
+  mealIngredients,
+  sideGroups,
+  cupboard,
   keypoints,
   steps,
 }: {
   dayId: string;
   weekStart: string;
+  cookedAt: string | null;
   meal: {
     id: string;
     name: string;
@@ -32,14 +44,14 @@ export function CookView({
   servings: number;
   prepWindow: string;
   variantLabel: string | null;
-  ingredients: Array<{
-    name: string;
-    quantity: number | null;
-    unit: string | null;
-  }>;
+  mealIngredients: Ing[];
+  sideGroups: Array<{ name: string; ingredients: Ing[] }>;
+  cupboard: string[];
   keypoints: string[];
   steps: string[];
 }) {
+  const [pending, start] = useTransition();
+
   if (!meal) {
     return (
       <main className="mx-auto max-w-[680px] p-6">
@@ -74,9 +86,9 @@ export function CookView({
       ) : null}
 
       <section>
-        <h2 className="section-label mb-2">Ingredients</h2>
+        <h2 className="section-label mb-2">For the meal</h2>
         <ul className="space-y-1">
-          {ingredients.map((ing) => (
+          {mealIngredients.map((ing) => (
             <li key={ing.name} className="flex justify-between gap-4">
               <span>{ing.name}</span>
               <span className="font-display">
@@ -86,6 +98,35 @@ export function CookView({
           ))}
         </ul>
       </section>
+
+      {sideGroups.map((group) =>
+        group.ingredients.length ? (
+          <section key={group.name}>
+            <h2 className="section-label mb-2">For {group.name}</h2>
+            <ul className="space-y-1">
+              {group.ingredients.map((ing) => (
+                <li key={ing.name} className="flex justify-between gap-4">
+                  <span>{ing.name}</span>
+                  <span className="font-display">
+                    {formatAmount(ing.quantity, ing.unit)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null,
+      )}
+
+      {cupboard.length ? (
+        <section>
+          <h2 className="section-label mb-2">From the cupboard</h2>
+          <ul className="space-y-1">
+            {cupboard.map((name) => (
+              <li key={name}>{name}</li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       {meal.confidence !== "RECIPE" && keypoints.length > 0 ? (
         <section>
@@ -138,14 +179,14 @@ export function CookView({
               <button
                 type="button"
                 className="btn-text"
-                onClick={() => acceptConfidenceNudge(meal.id)}
+                onClick={() => start(() => acceptConfidenceNudge(meal.id))}
               >
                 Yes, update
               </button>
               <button
                 type="button"
                 className="btn-text muted"
-                onClick={() => dismissConfidenceNudge(meal.id)}
+                onClick={() => start(() => dismissConfidenceNudge(meal.id))}
               >
                 Not now
               </button>
@@ -158,13 +199,25 @@ export function CookView({
         </CoachSticky>
       ) : null}
 
-      <button
-        type="button"
-        className="btn-primary"
-        onClick={() => logCook(dayId)}
-      >
-        I cooked this
-      </button>
+      {cookedAt ? (
+        <button
+          type="button"
+          className="btn-outline"
+          disabled={pending}
+          onClick={() => start(() => undoCook(dayId))}
+        >
+          Cooked · Undo
+        </button>
+      ) : (
+        <button
+          type="button"
+          className="btn-primary"
+          disabled={pending}
+          onClick={() => start(() => logCook(dayId))}
+        >
+          I cooked this
+        </button>
+      )}
     </main>
   );
 }

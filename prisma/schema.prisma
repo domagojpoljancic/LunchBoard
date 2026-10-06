@@ -8,11 +8,12 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
+  id           String    @id @default(cuid())
+  email        String    @unique
   passwordHash String
-  timezone     String   @default("UTC")
-  createdAt    DateTime @default(now())
+  timezone     String    @default("UTC")
+  onboardedAt  DateTime?
+  createdAt    DateTime  @default(now())
   meals        Meal[]
   sides        Side[]
   weeks        Week[]
@@ -109,18 +110,23 @@ model Week {
 }
 
 model DayPlan {
-  id         String          @id @default(cuid())
-  weekId     String
-  week       Week            @relation(fields: [weekId], references: [id], onDelete: Cascade)
-  date       String
-  enabled    Boolean         @default(true)
-  mealId     String?
-  meal       Meal?           @relation(fields: [mealId], references: [id], onDelete: SetNull)
-  variantId  String?
-  variant    ProteinVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
-  servings   Int             @default(3)
-  prepWindow String          @default("EVENING_BEFORE")
-  sides      DayPlanSide[]
+  id               String          @id @default(cuid())
+  weekId           String
+  week             Week            @relation(fields: [weekId], references: [id], onDelete: Cascade)
+  date             String
+  enabled          Boolean         @default(true)
+  mealId           String?
+  meal             Meal?           @relation(fields: [mealId], references: [id], onDelete: SetNull)
+  variantId        String?
+  variant          ProteinVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  servings         Int             @default(3)
+  prepWindow       String          @default("EVENING_BEFORE")
+  cookedAt         DateTime?
+  fillReason       String?
+  leftoverOfDayId  String?
+  leftoverOf       DayPlan?        @relation("Leftovers", fields: [leftoverOfDayId], references: [id], onDelete: SetNull)
+  leftoverDays     DayPlan[]       @relation("Leftovers")
+  sides            DayPlanSide[]
 
   @@unique([weekId, date])
 }
