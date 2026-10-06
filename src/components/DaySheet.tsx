@@ -80,9 +80,7 @@ export function DaySheet({
                     key={v.id}
                     type="button"
                     className={`min-h-11 px-2 text-sm font-semibold ${
-                      day.meal?.variantId === v.id
-                        ? "bg-[var(--ink)] text-[var(--card)]"
-                        : ""
+                      day.meal?.variantId === v.id ? "seg-active" : "seg-idle"
                     }`}
                     onClick={() => updateDayVariant(day.id, v.id)}
                   >
@@ -129,9 +127,7 @@ export function DaySheet({
                 key={value}
                 type="button"
                 className={`text-sm font-semibold ${
-                  day.prepWindow === value
-                    ? "bg-[var(--ink)] text-[var(--card)]"
-                    : ""
+                  day.prepWindow === value ? "seg-active" : "seg-idle"
                 }`}
                 onClick={() => updateDayPrepWindow(day.id, value)}
               >

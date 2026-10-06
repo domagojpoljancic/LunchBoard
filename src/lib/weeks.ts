@@ -58,9 +58,29 @@ export function formatWeekRange(weekStart: string): string {
   if (!start) return weekStart;
   const end = new Date(start);
   end.setUTCDate(start.getUTCDate() + 6);
-  const left = formatInTimeZone(start, "UTC", "d MMM");
-  const right = formatInTimeZone(end, "UTC", "d MMM");
-  return `${left} – ${right}`;
+  const startMonth = formatInTimeZone(start, "UTC", "MMM");
+  const endMonth = formatInTimeZone(end, "UTC", "MMM");
+  const startDay = formatInTimeZone(start, "UTC", "d");
+  const endDay = formatInTimeZone(end, "UTC", "d");
+  if (startMonth === endMonth) {
+    return `${startDay}–${endDay} ${startMonth}`;
+  }
+  return `${startDay} ${startMonth} – ${endDay} ${endMonth}`;
+}
+
+/** Previous calendar day as YYYY-MM-DD. */
+export function previousDate(date: string): string {
+  const parsed = parseUtcDate(date);
+  if (!parsed) return date;
+  parsed.setUTCDate(parsed.getUTCDate() - 1);
+  return formatInTimeZone(parsed, "UTC", "yyyy-MM-dd");
+}
+
+/** Short weekday for cook schedule: "Sun". */
+export function weekdayShort(date: string): string {
+  const parsed = parseUtcDate(date);
+  if (!parsed) return date;
+  return formatInTimeZone(parsed, "UTC", "EEE");
 }
 
 export function weekdayLabel(date: string): string {

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { setConfidence } from "@/app/actions/meals";
 import { MealTicket, type TicketMeal } from "@/components/MealTicket";
 import { proteinColor } from "@/lib/protein";
@@ -31,6 +31,7 @@ export function Library({
 }) {
   const [query, setQuery] = useState("");
   const [protein, setProtein] = useState<string>("ALL");
+  const [, startTransition] = useTransition();
 
   const filtered = useMemo(() => {
     return meals.filter((m) => {
@@ -76,9 +77,7 @@ export function Library({
               type="button"
               onClick={() => setProtein(f.key)}
               className={`inline-flex h-9 items-center gap-2 rounded-full px-3 text-sm font-semibold ${
-                selected
-                  ? "bg-[var(--ink)] text-[var(--paper)]"
-                  : "border border-[var(--line)] bg-transparent"
+                selected ? "seg-active" : "border border-[var(--line)] seg-idle"
               }`}
             >
               {f.key !== "ALL" ? (
@@ -102,37 +101,37 @@ export function Library({
                 Meals you know will land here. Mark one, or add your own.
               </p>
             ) : null}
-            {query && shelf.items.length === 0 && shelf.key === "NEEDS_RECIPE" && filtered.length === 0 ? (
+            {query &&
+            shelf.items.length === 0 &&
+            shelf.key === "NEEDS_RECIPE" &&
+            filtered.length === 0 ? (
               <p className="text-sm text-[var(--muted)]">No meal matches that.</p>
             ) : null}
             <div className="space-y-2">
-              {shelf.items.map((meal) => (
-                <div key={meal.id} className="space-y-1">
+              {shelf.items.map((meal) => {
+                const known =
+                  meal.confidence === "KNOW" || meal.confidence === "PROMPT";
+                return (
                   <MealTicket
+                    key={meal.id}
                     meal={meal}
                     compact
                     selected={selectedId === meal.id}
                     onSelect={() =>
                       onSelect(selectedId === meal.id ? null : meal.id)
                     }
+                    knowToggle={{
+                      known,
+                      onToggle: () => {
+                        startTransition(() => {
+                          setConfidence(meal.id, known ? "RECIPE" : "KNOW");
+                        });
+                      },
+                    }}
+                    editHref={`/meals/${meal.id}`}
                   />
-                  {meal.confidence !== "KNOW" ? (
-                    <button
-                      type="button"
-                      className="btn-text muted text-sm"
-                      onClick={() => setConfidence(meal.id, "KNOW")}
-                    >
-                      I know how to cook this
-                    </button>
-                  ) : null}
-                  <Link
-                    href={`/meals/${meal.id}`}
-                    className="btn-text muted block text-sm"
-                  >
-                    Edit
-                  </Link>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </section>
         ))}

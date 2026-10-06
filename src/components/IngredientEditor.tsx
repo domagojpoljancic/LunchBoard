@@ -86,9 +86,7 @@ export function IngredientEditor({
                   key={role}
                   type="button"
                   className={`px-3 text-sm font-semibold ${
-                    ing.role === role
-                      ? "bg-[var(--ink)] text-[var(--card)]"
-                      : ""
+                    ing.role === role ? "seg-active" : "seg-idle"
                   }`}
                   onClick={() =>
                     start(() => updateIngredient(ing.id, { role }))
