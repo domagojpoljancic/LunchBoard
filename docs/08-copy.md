@@ -37,6 +37,7 @@ Use these words. The voice is a calm cook standing next to the board: short, spe
 | Diversity | {n} {protein} lunches this week. Swap one if you want more variety. |
 | Diversity dismiss | Dismiss |
 | Fill needs a known meal | Mark a meal you know how to cook, or add one. Then I can fill the empty days. |
+| Fill: try new tag | New to you |
 | Shelf Can cook | Can cook |
 | Shelf Similar | Similar |
 | Shelf Needs a recipe | Needs a recipe |
@@ -73,6 +74,9 @@ Protein names in the diversity line: beef, white meat, fish, vegetarian, vegan, 
 | Amount grams | {n} g |
 | Amount ml | {n} ml |
 | Amount pieces | {n} |
+| Unit bunch | bunch |
+| Copy list | Copy list |
+| Copy list, copied | Copied |
 
 ## Cook
 
@@ -81,10 +85,14 @@ Protein names in the diversity line: beef, white meat, fish, vegetarian, vegan, 
 | Know | You know this one. |
 | Prompt | A few cues. |
 | Cooked | I cooked this |
+| Cooked, undo | Cooked · Undo |
 | Nudge to prompt | You have cooked this {n} times. Move it to roughly know? |
 | Nudge to know | You have cooked this {n} times. Mark it as a meal you know? |
 | Nudge yes | Yes, update |
 | Nudge no | Not now |
+| Ingredients: for the meal | For the meal |
+| Ingredients: for a side | For {side} |
+| Ingredients: cupboard | From the cupboard |
 
 ## Editor
 
