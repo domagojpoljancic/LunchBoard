@@ -6,16 +6,13 @@ test("places Bolognese and shows it on the list", async ({ page }) => {
   await login(page);
   await skipOnboarding(page);
 
-  const mark = page.getByRole("button", { name: /Mark Bolognese as known/ });
-  if (await mark.count()) {
-    await mark.first().click();
-    await page.waitForTimeout(600);
-  }
+  await page
+    .locator("aside")
+    .getByRole("button", { name: /Bolognese/ })
+    .first()
+    .click();
 
-  await page.getByText("Bolognese", { exact: true }).first().click();
-  await page.waitForTimeout(300);
-
-  const place = page.getByRole("button", { name: /Place Bolognese/ });
+  const place = page.getByRole("button", { name: "Place Bolognese" });
   await expect(place.first()).toBeVisible({ timeout: 10000 });
   await place.first().click();
   await expect(page.getByText("Cook Sun evening")).toBeVisible({
@@ -25,5 +22,5 @@ test("places Bolognese and shows it on the list", async ({ page }) => {
   const weekStart = page.url().split("/week/")[1]?.split(/[?#]/)[0];
   await page.goto(`/list/${weekStart}`);
   await page.waitForLoadState("networkidle");
-  await expect(page.getByText(/beef mince|vegan mince/i).first()).toBeVisible();
+  await expect(page.getByText(/beef mince/i).first()).toBeVisible();
 });

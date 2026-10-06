@@ -1,6 +1,6 @@
 # LunchBoard
 
-> **WIP — working name.** The app loop runs locally, but it is not ready to hand over. The round-2 review ([docs/09-review.md](docs/09-review.md)) found visual bugs (selected toggles show no text, clipped day columns, phone layout scrolls sideways) and a few data-trust gaps. The fix plan is [docs/10-next-plan.md](docs/10-next-plan.md). There is no hosted preview yet.
+> **WIP — working name.** Round-2 fix plan is largely implemented on this branch: visual bugs, live carry-over, onboarding, leftovers, cook logging, and CI/E2E. Hosted preview still needs Postgres secrets if you want a public URL.
 
 Weekday lunch planning on a board. You keep the meals you know, add your own, place them on the days you are actually home, and get a buy list plus a pantry check.
 
@@ -16,36 +16,29 @@ start with auto model
 
 Or run **`/build-lunchboard`**. Spec: [CURSOR_ONE_CLICK.md](CURSOR_ONE_CLICK.md).
 
-## Next: fix plan (round 2)
+## Next plan
 
-Say **"start next plan"**, or run **`/build-next`**. This runs [prompts/execute-next.md](prompts/execute-next.md) through five phases:
-
-| Phase | Goal | Needs from you |
-| --- | --- | --- |
-| 0 | Visual correctness at every width | Nothing |
-| 1 | Live carry-over, cook logging per day, validation and ownership, timezone, pending and error states | Nothing |
-| 2 | Playwright E2E, CI screenshots on every PR, optional hosted preview | Postgres and auth secrets, only for the hosted URL |
-| 3 | First-run "what can you cook", better Fill, cook schedule, full meal editor, copy list, drag to place | Nothing |
-| 4 | Opt-in leftover days | A yes (default: build it) |
+Say **"start next plan"**, or run **`/build-next`**. Spec: [docs/10-next-plan.md](docs/10-next-plan.md), review: [docs/09-review.md](docs/09-review.md).
 
 ## What works / stubbed / TBD
 
 | Piece | Status | Notes |
 | --- | --- | --- |
-| Build spec | **Works** | `docs/`, `agents/`, `PLAN.md` |
-| Fix plan | **Works** | `docs/09-review.md`, `docs/10-next-plan.md`, `/build-next` |
+| Build + fix specs | **Works** | `docs/`, `/build-lunchboard`, `/build-next` |
 | Web app shell | **Works** | Next.js 15, Prisma SQLite, Auth.js |
-| Meal library | **Partial** | Shelves, filter, and mark-known work; the selected filter pill is unreadable and tickets are cluttered (phase 0) |
-| Ingredient editing | **Partial** | Add, remove, and edit work; Buy/Cupboard selection is unreadable (phase 0); no protein-option, side, or step editing (phase 3) |
-| Week board | **Partial** | Placing, servings, protein, prep window, and sides work; columns clip at 1280–1440 and the phone layout overflows (phase 0) |
-| Buy list and pantry check | **Partial** | Flat list and weekly pantry reset work; carry-over is a one-time snapshot, not live (phase 1) |
-| Cook view | **Works** | Depth follows confidence; "I cooked this" can be counted more than once (phase 1) |
-| Similar meals and fill empty days | **Partial** | Unit tested; Fill can repeat a meal before using others (phase 3) |
-| Starter meals | **Works** | Twelve seeded lunches; all start under Needs a recipe until onboarding exists (phase 3) |
-| Input validation | **Stubbed** | Zod installed, not used; two actions skip ownership checks (phase 1) |
-| E2E tests / CI / preview URL | **TBD** | Phase 2 |
-| Leftover days | **TBD** | Phase 4, opt-in |
-| Google Keep / aisles / photos | **TBD** | Copy-list bridge in phase 3; integration later |
+| Meal library | **Works** | Shelves, protein filter, circular know check, pencil edit |
+| Ingredient editing | **Works** | Add/remove/edit; Buy/Cupboard readable |
+| Week board | **Works** | Rails for off days, cook schedule on tickets, mobile stack |
+| Buy list and pantry | **Works** | Live carry-over, copy list, weekly pantry reset |
+| Cook view | **Works** | Grouped ingredients; one cook log per day + undo |
+| Fill empty days | **Works** | Known → similar → repeat last; TRY_NEW tag |
+| Onboarding | **Works** | First-run “what can you cook?” |
+| Leftover days | **Works** | Opt-in from the day sheet |
+| E2E + CI | **Works** | Playwright + GitHub Actions artifacts |
+| Meal editor: proteins/sides/steps edit | **Partial** | Basics + ingredients; attach/create side and step edit still light |
+| Drag to place | **TBD** | Click-to-place and keyboard 1–7 remain |
+| Hosted preview URL | **TBD** | Needs Postgres `DATABASE_URL` + `AUTH_SECRET` (+ Vercel) |
+| Google Keep / aisles / photos | **TBD** | Copy list is the bridge for now |
 
 ## Quick start
 
@@ -69,7 +62,19 @@ Local sign-in:
 ```bash
 npm test
 npm run build
+npm run e2e
 ```
+
+## Hosted preview
+
+SQLite will not persist on Vercel. To get a URL:
+
+1. Create a Postgres database (Supabase or Neon).
+2. Set secrets: `DATABASE_URL`, `DIRECT_URL` (migrations), `AUTH_SECRET`.
+3. Import the repo in Vercel (or set `VERCEL_TOKEN` for the agent).
+4. Switch Prisma `provider` to `postgresql` and redeploy.
+
+Until then, open any pull request on GitHub — CI uploads board screenshots as artifacts.
 
 ## Document map
 
@@ -77,6 +82,6 @@ npm run build
 | --- | --- |
 | [PLAN.md](PLAN.md) | Map of the locked docs |
 | [docs/](docs/) | Product, data, screens, visual, seed, done |
-| [docs/09-review.md](docs/09-review.md) | Round-2 review findings with ids |
-| [docs/10-next-plan.md](docs/10-next-plan.md) | Phased fix plan with acceptance checks |
+| [docs/09-review.md](docs/09-review.md) | Round-2 review findings |
+| [docs/10-next-plan.md](docs/10-next-plan.md) | Phased fix plan |
 | [agents/](agents/) | Build roles, including principal UX/frontend |
