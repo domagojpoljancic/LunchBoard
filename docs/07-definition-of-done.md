@@ -17,7 +17,7 @@ committed screenshot. Boxes that are still open are listed with their reason in 
 - [x] This week opens with Monday–Friday on and Saturday–Sunday off
 - [x] Turning a day off removes its ingredients from the list and keeps the meal on the day
 - [x] Selecting Bolognese and clicking an empty day places it at 3 portions with pasta on and green salad off
-- [ ] Clicking a filled day opens the sheet and does not replace the meal
+- [x] Clicking a filled day opens the sheet and does not replace the meal
 - [x] Portions 6 on beef Bolognese makes beef mince 900 g
 - [x] Switching that day to vegan mince removes beef mince and adds vegan mince 720 g (360 scaled by 6/3)
 - [x] Lasagne on At lunch shows the lunch warning and stays on the day
@@ -48,8 +48,8 @@ committed screenshot. Boxes that are still open are listed with their reason in 
 
 ## Cook
 
-- [ ] A recipe meal shows the full steps
-- [ ] After it is marked known, the cook view shows keypoints and hides the full steps
+- [x] A recipe meal shows the full steps
+- [x] After it is marked known, the cook view shows keypoints and hides the full steps
 - [ ] I cooked this, three times, shows the nudge
 - [ ] Not now hides it until three more cooks
 - [ ] Yes updates confidence

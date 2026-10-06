@@ -13,6 +13,11 @@ test("cooking a day counts once and can be undone", async ({ page }) => {
   await page.waitForURL(/\/cook\//);
   await page.waitForLoadState("networkidle");
 
+  // Bolognese is still on Needs a recipe here, so the cook view spells out every step.
+  await expect(
+    page.getByRole("heading", { name: "Steps", exact: true }),
+  ).toBeVisible();
+
   const cooked = page.getByRole("button", { name: "I cooked this" });
   await cooked.click();
 
@@ -25,4 +30,33 @@ test("cooking a day counts once and can be undone", async ({ page }) => {
   await expect(page.getByRole("button", { name: "I cooked this" })).toBeVisible({
     timeout: 15000,
   });
+});
+
+test("a meal the cook knows shows keypoints instead of steps", async ({
+  page,
+}) => {
+  test.setTimeout(120000);
+  await login(page);
+  await skipOnboarding(page);
+
+  await page
+    .getByRole("button", { name: "Mark Goulash as known", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Goulash: marked as known", exact: true }),
+  ).toBeVisible({ timeout: 15000 });
+
+  await gotoWeekOffset(page, 6);
+  await placeFirst(page, "Goulash");
+
+  await page.getByRole("link", { name: "Cook", exact: true }).first().click();
+  await page.waitForURL(/\/cook\//);
+  await page.waitForLoadState("networkidle");
+
+  await expect(
+    page.getByRole("heading", { name: "Keypoints", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Steps", exact: true }),
+  ).toHaveCount(0);
 });
