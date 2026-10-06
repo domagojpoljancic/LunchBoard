@@ -24,7 +24,7 @@ Date: 2026-10-03
 | Carry-over / pantry reset rules | Pass | unit tests + `ensureWeek` |
 | Cook view by confidence | Pass | implemented |
 | Fill empty days does not overwrite | Pass | unit tests + action |
-| Visual system (paper, Fraunces, stripes) | Pass | globals + components |
+| Visual system (paper, Fraunces, stripes) | **Fail** (2026-10-06) | Passed on code reading only. Screenshots show unreadable selected toggles, clipped columns, and phone overflow. See `docs/09-review.md` U1–U3 |
 | Copy deck strings used | Pass | major strings from `docs/08-copy.md` |
 
 ## Non-blocking

@@ -18,6 +18,8 @@ The app is specified across `docs/`, `agents/`, and `prompts/execute.md`. A one-
 | When is it finished? | `docs/07-definition-of-done.md` |
 | What words appear in the UI? | `docs/08-copy.md` |
 | Who builds which part? | `agents/` |
+| What is wrong with the current build? | `docs/09-review.md` |
+| What gets fixed next, in what order? | `docs/10-next-plan.md` |
 
 If two documents disagree, the more specific one wins. Fix the other document in the same change.
 
@@ -39,7 +41,7 @@ The interface is a paper planning board: a dot grid, day columns, meal tickets c
 - Sides are chosen every time you place a meal. Defaults come from the meal, not from last week.
 - Buy list is flat. Unchecked lines carry into the next week and do not double-count when the new week needs the same thing. Pantry ticks reset each week.
 - **Fill empty days** fills only empty, enabled days. It uses meals you know, then similar meals. It leaves a day empty rather than assigning a meal that needs a recipe and is not similar.
-- No photos, aisles, leftover-day linking, offline mode, Google Keep, or a remembered pantry in this build.
+- No photos, aisles, leftover-day linking, offline mode, Google Keep, or a remembered pantry in this build. Round 2 (`docs/10-next-plan.md`, phase 4) adds leftover days as an opt-in once the user agrees.
 - Local database is SQLite so the app runs without Docker. The schema stays ordinary SQL.
 
 ## Done
