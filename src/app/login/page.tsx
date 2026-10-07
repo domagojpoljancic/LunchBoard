@@ -46,7 +46,8 @@ export default async function LoginPage({
               type="email"
               required
               defaultValue="cook@lunchboard.local"
-              className="mt-1 h-11 w-full rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3"
+              autoComplete="username"
+              className="field"
             />
           </label>
           <label className="block">
@@ -56,7 +57,8 @@ export default async function LoginPage({
               type="password"
               required
               defaultValue="lunchboard"
-              className="mt-1 h-11 w-full rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3"
+              autoComplete="current-password"
+              className="field"
             />
           </label>
           {params.error ? (

@@ -21,11 +21,14 @@ test("cooking a day counts once and can be undone", async ({ page }) => {
   const cooked = page.getByRole("button", { name: "I cooked this" });
   await cooked.click();
 
-  const undo = page.getByRole("button", { name: /Cooked/ });
-  await expect(undo).toBeVisible({ timeout: 15000 });
-  // The log button is gone, so a repeat tap cannot count a second cook.
+  // Logging a cook closes the cook view and returns to the board.
+  await page.waitForURL(/\/week\//, { timeout: 15000 });
   await expect(cooked).toHaveCount(0);
 
+  await page.getByRole("link", { name: "Cooked", exact: true }).click();
+  await page.waitForURL(/\/cook\//);
+  const undo = page.getByRole("button", { name: /Cooked/ });
+  await expect(undo).toBeVisible({ timeout: 15000 });
   await undo.click();
   await expect(page.getByRole("button", { name: "I cooked this" })).toBeVisible({
     timeout: 15000,

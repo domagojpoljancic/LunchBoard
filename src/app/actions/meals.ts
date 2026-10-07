@@ -33,25 +33,16 @@ export async function createMeal(input: {
     unit?: "G" | "ML" | "PIECE" | "BUNCH" | null;
     role?: "BUY" | "PANTRY";
   }>;
-  proteinGroup?: string | null;
-  activeMinutes?: number | null;
-  totalMinutes?: number | null;
+  proteinGroup: string;
+  activeMinutes: number;
+  totalMinutes: number;
 }) {
   const user = await requireUser();
   const parsed = createMealSchema.parse({
     name: input.name,
-    proteinGroup: (input.proteinGroup as
-      | "BEEF"
-      | "WHITE_MEAT"
-      | "FISH"
-      | "VEGETARIAN"
-      | "VEGAN"
-      | "DAIRY"
-      | "OTHER"
-      | null
-      | undefined) || undefined,
-    activeMinutes: input.activeMinutes ?? null,
-    totalMinutes: input.totalMinutes ?? null,
+    proteinGroup: input.proteinGroup,
+    activeMinutes: input.activeMinutes,
+    totalMinutes: input.totalMinutes,
     ingredients: input.ingredients.map((ing) => ({
       name: ing.name,
       quantity: ing.quantity ?? null,
@@ -61,14 +52,11 @@ export async function createMeal(input: {
   });
   const name = parsed.name;
 
-  const group = parsed.proteinGroup || "OTHER";
-  const label =
-    group === "OTHER"
-      ? "No specific protein"
-      : group
-          .toLowerCase()
-          .replace(/_/g, " ")
-          .replace(/\b\w/g, (c) => c.toUpperCase());
+  const group = parsed.proteinGroup;
+  const label = group
+    .toLowerCase()
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 
   const meal = await prisma.meal.create({
     data: {
@@ -78,8 +66,8 @@ export async function createMeal(input: {
       method: "OTHER",
       baseServings: 3,
       completePlate: false,
-      activeMinutes: parsed.activeMinutes ?? null,
-      totalMinutes: parsed.totalMinutes ?? null,
+      activeMinutes: parsed.activeMinutes,
+      totalMinutes: parsed.totalMinutes,
       variants: {
         create: {
           label,
@@ -110,19 +98,19 @@ export async function updateMealBasics(
     name?: string;
     method?: string;
     cuisine?: string | null;
-    activeMinutes?: number | null;
-    totalMinutes?: number | null;
+    activeMinutes: number;
+    totalMinutes: number;
     completePlate?: boolean;
     baseServings?: number;
   },
 ) {
   const parsed = updateMealBasicsSchema.parse({
     mealId,
-    name: data.name ?? "Meal",
-    method: data.method ?? "OTHER",
+    name: data.name ?? "",
+    method: data.method ?? "",
     cuisine: data.cuisine ?? null,
-    activeMinutes: data.activeMinutes ?? null,
-    totalMinutes: data.totalMinutes ?? null,
+    activeMinutes: data.activeMinutes,
+    totalMinutes: data.totalMinutes,
     completePlate: data.completePlate ?? false,
     baseServings: data.baseServings,
   });

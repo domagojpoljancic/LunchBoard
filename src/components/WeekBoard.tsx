@@ -1,10 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import {
+  acceptConfidenceNudge,
+  dismissConfidenceNudge,
+} from "@/app/actions/cook";
 import {
   dismissDiversity,
   fillWeekEmptyDays,
+  moveDayMeal,
   placeMealOnDay,
 } from "@/app/actions/week";
 import { CoachSticky } from "@/components/CoachSticky";
@@ -12,8 +18,9 @@ import { DayColumn, type DayView } from "@/components/DayColumn";
 import { DaySheet, type SideOption } from "@/components/DaySheet";
 import { Library, type LibraryMeal } from "@/components/Library";
 import { TopBar } from "@/components/TopBar";
+import { useBoardDrag } from "@/components/use-board-drag";
 import { proteinLabel } from "@/lib/protein";
-import { weekdayShort } from "@/lib/weeks";
+import { weekdayLabel, weekdayShort } from "@/lib/weeks";
 
 export type BoardDay = DayView & {
   suggestedSides: SideOption[];
@@ -27,6 +34,7 @@ export function WeekBoard({
   diversityGroup,
   diversityCount,
   diversityDismissed,
+  nudgeMealId,
 }: {
   weekStart: string;
   weekId: string;
@@ -35,12 +43,17 @@ export function WeekBoard({
   diversityGroup: string | null;
   diversityCount: number;
   diversityDismissed: boolean;
+  nudgeMealId?: string | null;
 }) {
+  const router = useRouter();
+  const rootRef = useRef<HTMLDivElement>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [openDayId, setOpenDayId] = useState<string | null>(null);
   const [replacing, setReplacing] = useState(false);
-  const [libraryOpen, setLibraryOpen] = useState(false);
   const [fillNote, setFillNote] = useState<string | null>(null);
+  const [nudgeHidden, setNudgeHidden] = useState(false);
+  const [zoom, setZoom] = useState(100);
+  const [status, setStatus] = useState("");
   const [pending, startTransition] = useTransition();
 
   const selectedMeal = meals.find((m) => m.id === selectedId) ?? null;
@@ -99,17 +112,38 @@ export function WeekBoard({
   const showDiversity =
     !diversityDismissed && diversityGroup && diversityCount >= 4;
 
+  const nudgeMeal = meals.find((meal) => meal.id === nudgeMealId) ?? null;
+  const showCookNudge =
+    !nudgeHidden &&
+    nudgeMeal != null &&
+    nudgeMeal.confidence !== "KNOW" &&
+    (nudgeMeal.cookCount ?? 0) >=
+      (nudgeMeal.nudgeDismissedAtCookCount ?? 0) + 3;
+
   const dayViews = useMemo(() => days, [days]);
 
-  const mealsButton = (
-    <button
-      type="button"
-      className="btn-text px-2 text-sm lg:hidden"
-      onClick={() => setLibraryOpen(true)}
-    >
-      Meals
-    </button>
-  );
+  const { drag, didDrag } = useBoardDrag(rootRef, ({ mealId, fromDayId, toDayId }) => {
+    const day = days.find((item) => item.id === toDayId);
+    if (!day?.enabled) return;
+    startTransition(async () => {
+      if (fromDayId) {
+        await moveDayMeal(fromDayId, toDayId);
+        setStatus(`Moved to ${weekdayLabel(day.date)}.`);
+      } else {
+        await placeMealOnDay(toDayId, mealId);
+        setOpenDayId(toDayId);
+        setSelectedId(null);
+        setReplacing(false);
+        setStatus(`Placed on ${weekdayLabel(day.date)}.`);
+      }
+    });
+  });
+
+  function swallowDragClick() {
+    if (!didDrag.current) return false;
+    didDrag.current = false;
+    return true;
+  }
 
   const listsLink = (
     <Link href={`/list/${weekStart}`} className="btn-text px-2 text-sm md:px-4">
@@ -141,34 +175,72 @@ export function WeekBoard({
   );
 
   return (
-    <div className="min-h-screen overflow-x-hidden">
+    <div
+      ref={rootRef}
+      className={`flex min-h-dvh flex-col md:h-dvh md:overflow-hidden ${
+        drag ? "cursor-grabbing" : ""
+      }`}
+    >
       <TopBar
         weekStart={weekStart}
-        mobileExtras={
-          <>
-            {mealsButton}
-            {listsLink}
-          </>
-        }
         right={
           <>
-            <span className="hidden lg:inline">{mealsButton}</span>
-            <span className="hidden md:inline">{listsLink}</span>
+            {listsLink}
             {fillButton}
           </>
         }
       />
 
-      <div className="relative mx-auto grid max-w-[1600px] gap-4 p-3 md:p-6 lg:grid-cols-[280px_1fr] xl:grid-cols-[300px_1fr]">
-        <div className="hidden min-h-[calc(100vh-120px)] lg:block">
-          <Library
-            meals={meals}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
+      <div className="hidden shrink-0 items-center gap-3 px-4 pt-3 md:flex">
+        <label className="flex items-center gap-3">
+          <span className="section-label">Zoom</span>
+          <input
+            type="range"
+            min={100}
+            max={150}
+            step={5}
+            value={zoom}
+            aria-valuetext={`${zoom}%`}
+            onChange={(event) => setZoom(Number(event.target.value))}
           />
-        </div>
+        </label>
+        <span className="w-12 text-sm tabular-nums">{zoom}%</span>
+        <button
+          type="button"
+          className="btn-text"
+          onClick={() => setZoom(100)}
+        >
+          Fit week
+        </button>
+      </div>
 
-        <div className="min-w-0 space-y-4">
+      <div className="shrink-0 px-3 pt-3 md:px-4">
+        <Library
+          meals={meals}
+          selectedId={selectedId}
+          onSelect={setSelectedId}
+          beforeSelect={swallowDragClick}
+        />
+      </div>
+
+      <div className="flex min-h-0 flex-1 flex-col gap-3 px-3 py-3 md:flex-row md:overflow-hidden md:px-4">
+        {openDay ? (
+          <DaySheet
+            day={openDay}
+            sides={openDay.suggestedSides}
+            replacing={replacing}
+            selectedMealId={selectedId}
+            leftoverSources={leftoverSourcesFor(openDay)}
+            onClose={() => {
+              setOpenDayId(null);
+              setReplacing(false);
+            }}
+            onStartReplace={() => setReplacing(true)}
+            onCancelReplace={() => setReplacing(false)}
+          />
+        ) : null}
+
+        <div className="flex min-w-0 flex-1 flex-col gap-3 md:overflow-auto">
           {showDiversity ? (
             <CoachSticky
               actions={
@@ -186,85 +258,101 @@ export function WeekBoard({
             </CoachSticky>
           ) : null}
           {fillNote ? <CoachSticky>{fillNote}</CoachSticky> : null}
-
-          <div className="flex flex-col gap-3 md:flex-row md:gap-2 md:overflow-x-auto md:pb-2">
-            {dayViews.map((day) => (
-              <div
-                key={day.id}
-                className={
-                  day.enabled
-                    ? "w-full shrink-0 md:w-[min(220px,40vw)] md:min-w-[180px] md:flex-1"
-                    : "w-full shrink-0 md:w-11"
-                }
-              >
-                <DayColumn
-                  day={day}
-                  selectedMealName={selectedMeal?.name ?? null}
-                  onEmptyClick={() => {
-                    if (selectedId) {
+          {showCookNudge && nudgeMeal ? (
+            <CoachSticky
+              actions={
+                <>
+                  <button
+                    type="button"
+                    className="btn-text"
+                    onClick={() => {
+                      setNudgeHidden(true);
                       startTransition(async () => {
-                        await placeMealOnDay(day.id, selectedId);
-                        setOpenDayId(day.id);
-                        setSelectedId(null);
-                        setReplacing(false);
+                        await acceptConfidenceNudge(nudgeMeal.id);
+                        router.replace(`/week/${weekStart}`);
                       });
-                      return;
-                    }
-                    if (leftoverSourcesFor(day).length) {
+                    }}
+                  >
+                    Yes, update
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-text muted"
+                    onClick={() => {
+                      setNudgeHidden(true);
+                      startTransition(async () => {
+                        await dismissConfidenceNudge(nudgeMeal.id);
+                        router.replace(`/week/${weekStart}`);
+                      });
+                    }}
+                  >
+                    Not now
+                  </button>
+                </>
+              }
+            >
+              {nudgeMeal.confidence === "RECIPE"
+                ? `You have cooked this ${nudgeMeal.cookCount} times. Move it to roughly know?`
+                : `You have cooked this ${nudgeMeal.cookCount} times. Mark it as a meal you know?`}
+            </CoachSticky>
+          ) : null}
+
+          <div className="min-h-0 flex-1 md:overflow-auto">
+            <div
+              className="flex flex-col gap-3 md:h-full md:flex-row md:gap-2"
+              style={zoom > 100 ? { width: `${zoom}%`, minWidth: "100%" } : undefined}
+            >
+              {dayViews.map((day) => (
+                <div
+                  key={day.id}
+                  className={
+                    day.enabled
+                      ? "w-full md:h-full md:min-w-0 md:flex-1"
+                      : "w-full md:h-full md:w-11 md:shrink-0"
+                  }
+                >
+                  <DayColumn
+                    day={day}
+                    selectedMealName={selectedMeal?.name ?? null}
+                    dropActive={drag?.overDayId === day.id}
+                    beforeSelect={swallowDragClick}
+                    onEmptyClick={() => {
+                      if (swallowDragClick()) return;
+                      if (selectedId) {
+                        startTransition(async () => {
+                          await placeMealOnDay(day.id, selectedId);
+                          setOpenDayId(day.id);
+                          setSelectedId(null);
+                          setReplacing(false);
+                        });
+                        return;
+                      }
+                      if (leftoverSourcesFor(day).length) {
+                        setOpenDayId(day.id);
+                        setReplacing(false);
+                      }
+                    }}
+                    onFilledClick={() => {
                       setOpenDayId(day.id);
                       setReplacing(false);
-                    }
-                  }}
-                  onFilledClick={() => {
-                    setOpenDayId(day.id);
-                    setReplacing(false);
-                  }}
-                />
-              </div>
-            ))}
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-
-        {openDay ? (
-          <DaySheet
-            day={openDay}
-            sides={openDay.suggestedSides}
-            replacing={replacing}
-            selectedMealId={selectedId}
-            leftoverSources={leftoverSourcesFor(openDay)}
-            onClose={() => {
-              setOpenDayId(null);
-              setReplacing(false);
-            }}
-            onStartReplace={() => setReplacing(true)}
-            onCancelReplace={() => setReplacing(false)}
-          />
-        ) : null}
       </div>
 
-      {libraryOpen ? (
-        <div className="fixed inset-0 z-50 bg-[rgba(28,25,21,0.35)] lg:hidden">
-          <div className="absolute inset-x-0 bottom-0 top-10 overflow-hidden rounded-t-[20px] bg-[var(--card)] p-2">
-            <div className="flex justify-end px-2">
-              <button
-                type="button"
-                className="btn-text"
-                onClick={() => setLibraryOpen(false)}
-              >
-                Close
-              </button>
-            </div>
-            <div className="h-[calc(100%-48px)]">
-              <Library
-                meals={meals}
-                selectedId={selectedId}
-                onSelect={(id) => {
-                  setSelectedId(id);
-                  setLibraryOpen(false);
-                }}
-              />
-            </div>
-          </div>
+      <p className="sr-only" aria-live="polite">
+        {status}
+      </p>
+      {drag ? (
+        <div
+          className="pointer-events-none fixed z-50 rounded-2xl border border-[var(--ink)] bg-[var(--card)] px-3 py-2 font-display shadow-[var(--shadow)]"
+          style={{ left: drag.x + 12, top: drag.y + 12 }}
+        >
+          {drag.name}
         </div>
       ) : null}
     </div>

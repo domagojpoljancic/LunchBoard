@@ -46,6 +46,8 @@ export async function loadBoard(userId: string, weekStart: string) {
       proteinGroup: def?.proteinGroup ?? "OTHER",
       method: m.method,
       shelf: shelfMap.get(m.id) ?? "NEEDS_RECIPE",
+      cookCount: m.cookCount,
+      nudgeDismissedAtCookCount: m.nudgeDismissedAtCookCount,
     };
   });
 

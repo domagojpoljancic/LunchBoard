@@ -6,6 +6,7 @@ import {
   confidenceActionLabel,
   methodLabel,
 } from "@/lib/protein";
+import { updateMealBasicsSchema } from "@/lib/schemas";
 
 const METHODS = ["ASSEMBLE", "PAN", "ONE_POT", "TRAY", "BAKE", "OTHER"] as const;
 const CONFIDENCE = ["KNOW", "PROMPT", "RECIPE"] as const;
@@ -26,26 +27,44 @@ export function MealBasicsForm({
 }) {
   const [pending, start] = useTransition();
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [confidence, setLocalConfidence] = useState(meal.confidence);
 
   return (
     <form
       className="sheet space-y-4 p-5"
+      noValidate
       action={(formData) => {
+        const activeRaw = String(formData.get("activeMinutes") || "");
+        const totalRaw = String(formData.get("totalMinutes") || "");
+        const parsed = updateMealBasicsSchema.safeParse({
+          mealId: meal.id,
+          name: String(formData.get("name") || ""),
+          method: String(formData.get("method") || ""),
+          cuisine: String(formData.get("cuisine") || "") || null,
+          activeMinutes: activeRaw === "" ? Number.NaN : Number(activeRaw),
+          totalMinutes: totalRaw === "" ? Number.NaN : Number(totalRaw),
+          completePlate: formData.get("completePlate") === "on",
+        });
+        if (!parsed.success) {
+          const issue = parsed.error.issues[0];
+          const key = issue?.path[0];
+          setSaved(false);
+          setError(
+            key === "name"
+              ? "Give the meal a name."
+              : key === "activeMinutes"
+                ? "Add the hands-on minutes."
+                : key === "totalMinutes"
+                  ? issue?.message || "Add the total minutes."
+                  : "Check the fields and try again.",
+          );
+          return;
+        }
+        setError(null);
         start(async () => {
           setSaved(false);
-          await updateMealBasics(meal.id, {
-            name: String(formData.get("name") || meal.name),
-            method: String(formData.get("method") || meal.method),
-            cuisine: String(formData.get("cuisine") || "") || null,
-            activeMinutes: formData.get("activeMinutes")
-              ? Number(formData.get("activeMinutes"))
-              : null,
-            totalMinutes: formData.get("totalMinutes")
-              ? Number(formData.get("totalMinutes"))
-              : null,
-            completePlate: formData.get("completePlate") === "on",
-          });
+          await updateMealBasics(meal.id, parsed.data);
           setSaved(true);
         });
       }}
@@ -54,8 +73,9 @@ export function MealBasicsForm({
         <span className="section-label">Meal name</span>
         <input
           name="name"
+          required
           defaultValue={meal.name}
-          className="font-display mt-1 h-14 w-full rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3 text-[32px]"
+          className="field font-display text-xl"
         />
       </label>
 
@@ -94,8 +114,12 @@ export function MealBasicsForm({
           <input
             name="activeMinutes"
             type="number"
+            required
+            min={1}
+            max={600}
+            inputMode="numeric"
             defaultValue={meal.activeMinutes ?? ""}
-            className="mt-1 h-11 w-full rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3"
+            className="field"
           />
         </label>
         <label>
@@ -103,8 +127,12 @@ export function MealBasicsForm({
           <input
             name="totalMinutes"
             type="number"
+            required
+            min={1}
+            max={1440}
+            inputMode="numeric"
             defaultValue={meal.totalMinutes ?? ""}
-            className="mt-1 h-11 w-full rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3"
+            className="field"
           />
         </label>
       </div>
@@ -113,7 +141,7 @@ export function MealBasicsForm({
         <select
           name="method"
           defaultValue={meal.method}
-          className="mt-1 h-11 w-full rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3"
+          className="field"
         >
           {METHODS.map((m) => (
             <option key={m} value={m}>
@@ -127,7 +155,7 @@ export function MealBasicsForm({
         <input
           name="cuisine"
           defaultValue={meal.cuisine ?? ""}
-          className="mt-1 h-11 w-full rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3"
+          className="field"
         />
       </label>
       <label className="flex min-h-11 items-center gap-3">
@@ -138,6 +166,11 @@ export function MealBasicsForm({
         />
         Complete plate (one-pot / bowl)
       </label>
+      {error ? (
+        <p role="alert" className="text-sm text-[var(--warning)]">
+          {error}
+        </p>
+      ) : null}
       <div className="flex items-center gap-3">
         <button type="submit" className="btn-primary" disabled={pending}>
           {pending ? "Saving…" : "Save meal"}

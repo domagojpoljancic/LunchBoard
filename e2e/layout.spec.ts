@@ -17,6 +17,10 @@ test("selected toggles keep contrast and phone does not scroll sideways", async 
   expect(contrast).not.toBeNull();
   expect(contrast!.color).not.toBe(contrast!.bg);
 
+  const day = await page.locator("[data-drop-day]").first().boundingBox();
+  expect(day).not.toBeNull();
+  expect(day!.y + day!.height).toBeLessThanOrEqual(900);
+
   await page.setViewportSize({ width: 390, height: 844 });
   await page.reload();
   await page.waitForLoadState("networkidle");

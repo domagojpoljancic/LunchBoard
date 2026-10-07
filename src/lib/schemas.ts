@@ -29,24 +29,36 @@ export const createMealIngredientSchema = z.object({
   role: roleSchema.optional(),
 });
 
-export const createMealSchema = z.object({
-  name: nameSchema,
-  proteinGroup: proteinGroupSchema.nullable().optional(),
-  activeMinutes: z.number().int().min(0).max(600).nullable().optional(),
-  totalMinutes: z.number().int().min(0).max(1440).nullable().optional(),
-  ingredients: z.array(createMealIngredientSchema).min(1),
-});
+const minutesMessage = "Total time can't be shorter than the hands-on time.";
 
-export const updateMealBasicsSchema = z.object({
-  mealId: cuid,
-  name: nameSchema,
-  method: z.string().min(1).max(40),
-  cuisine: z.string().max(80).nullable(),
-  activeMinutes: z.number().int().min(0).max(600).nullable(),
-  totalMinutes: z.number().int().min(0).max(1440).nullable(),
-  completePlate: z.boolean(),
-  baseServings: servingsSchema.optional(),
-});
+export const createMealSchema = z
+  .object({
+    name: nameSchema,
+    ingredients: z.array(createMealIngredientSchema).min(1),
+    proteinGroup: proteinGroupSchema,
+    activeMinutes: z.number().int().min(1).max(600),
+    totalMinutes: z.number().int().min(1).max(1440),
+  })
+  .refine((meal) => meal.totalMinutes >= meal.activeMinutes, {
+    message: minutesMessage,
+    path: ["totalMinutes"],
+  });
+
+export const updateMealBasicsSchema = z
+  .object({
+    mealId: cuid,
+    name: nameSchema,
+    method: z.string().min(1).max(40),
+    cuisine: z.string().max(80).nullable(),
+    activeMinutes: z.number().int().min(1).max(600),
+    totalMinutes: z.number().int().min(1).max(1440),
+    completePlate: z.boolean(),
+    baseServings: servingsSchema.optional(),
+  })
+  .refine((meal) => meal.totalMinutes >= meal.activeMinutes, {
+    message: minutesMessage,
+    path: ["totalMinutes"],
+  });
 
 export const addIngredientSchema = z
   .object({
@@ -68,6 +80,11 @@ export const updateIngredientSchema = z.object({
   quantity: z.number().min(0).nullable().optional(),
   unit: unitSchema.optional(),
   role: roleSchema.optional(),
+});
+
+export const moveDayMealSchema = z.object({
+  fromDayId: cuid,
+  toDayId: cuid,
 });
 
 export const dayIdSchema = z.object({ dayId: cuid });
