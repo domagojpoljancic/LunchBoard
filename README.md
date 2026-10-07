@@ -4,7 +4,7 @@
 > onboarding, leftovers, cook logging, and CI/E2E. A standards audit then closed a critical Auth.js
 > advisory, two tap-target bugs, and some doc drift.
 >
-> Still open: the meal editor cannot attach sides or edit steps, there is no drag-to-place, there is no
+> Still open: the meal editor cannot attach sides or edit steps, there is no
 > hosted preview (needs Postgres secrets), and `next@15` carries two build-time `postcss` advisories
 > that only a `next@16` major upgrade clears. Eight boxes in
 > [docs/07-definition-of-done.md](docs/07-definition-of-done.md) are still unticked, so the banner stays.
@@ -35,15 +35,15 @@ Say **"start next plan"**, or run **`/build-next`**. Spec: [docs/10-next-plan.md
 | Web app shell | **Works** | Next.js 15, Prisma SQLite, Auth.js |
 | Meal library | **Works** | Shelves, protein filter, circular know check, pencil edit |
 | Ingredient editing | **Works** | Add/remove/edit; Buy/Cupboard readable |
-| Week board | **Works** | Rails for off days, cook schedule on tickets, mobile stack |
+| Week board | **Works** | Meals on top, days fill the screen, zoom, day card on the left |
 | Buy list and pantry | **Works** | Live carry-over, copy list, weekly pantry reset |
 | Cook view | **Works** | Grouped ingredients; one cook log per day + undo |
 | Fill empty days | **Works** | Known → similar → repeat last; TRY_NEW tag |
 | Onboarding | **Works** | First-run “what can you cook?” |
 | Leftover days | **Works** | Opt-in from the day sheet |
-| E2E + CI | **Works** | 9 Playwright tests, typecheck and lint in CI, screenshot artifacts |
+| E2E + CI | **Works** | 11 Playwright tests, typecheck and lint in CI, screenshot artifacts |
 | Meal editor: proteins/sides/steps edit | **Partial** | Basics + ingredients; attach/create side and step edit still light |
-| Drag to place | **TBD** | Click-to-place and keyboard 1–7 remain |
+| Drag to place | **Works** | Drag onto a day, or select and click. Keys 1–7 still place |
 | Hosted preview URL | **TBD** | Needs Postgres `DATABASE_URL` + `AUTH_SECRET` (+ Vercel) |
 | Google Keep / aisles / photos | **TBD** | Copy list is the bridge for now |
 | `next@16` upgrade | **TBD** | Clears the last two `npm audit` advisories (build-time `postcss`) |
@@ -73,7 +73,7 @@ and `npx prisma db seed` on its own will top up the starter meals without touchi
 ## Tests
 
 ```bash
-npm test        # 50 unit and DB tests against prisma/test.db
+npm test        # 52 unit and DB tests against prisma/test.db
 npm run build
 npm run e2e     # Playwright, production build on port 3100, wipes prisma/e2e.db
 ```

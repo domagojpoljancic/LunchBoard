@@ -10,7 +10,10 @@ Use these words. The voice is a calm cook standing next to the board: short, spe
 | Lists | Lists |
 | Cook | Cook |
 | Fill | Fill empty days |
-| Meals (mobile) | Meals |
+| Meals (mobile) | The shelf is on every width. There is no separate Meals button. |
+| Drag hint | Drag a meal onto a day, or select it and click the day. |
+| Zoom | Zoom |
+| Fit week | Fit week |
 | Previous week | Previous |
 | Next week | Next |
 | Sign in | Sign in |

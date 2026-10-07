@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import {
   acceptConfidenceNudge,
@@ -50,6 +51,7 @@ export function CookView({
   keypoints: string[];
   steps: string[];
 }) {
+  const router = useRouter();
   const [pending, start] = useTransition();
 
   if (!meal) {
@@ -213,7 +215,19 @@ export function CookView({
           type="button"
           className="btn-primary"
           disabled={pending}
-          onClick={() => start(() => logCook(dayId))}
+          onClick={() =>
+            start(async () => {
+              const willNudge =
+                meal.confidence !== "KNOW" &&
+                meal.cookCount + 1 >= meal.nudgeDismissedAtCookCount + 3;
+              await logCook(dayId);
+              router.push(
+                willNudge
+                  ? `/week/${weekStart}?nudge=${meal.id}`
+                  : `/week/${weekStart}`,
+              );
+            })
+          }
         >
           I cooked this
         </button>

@@ -22,6 +22,8 @@ export function MealTicket({
   footer,
   knowToggle,
   editHref,
+  draggable,
+  dragFromDayId,
 }: {
   meal: TicketMeal;
   selected?: boolean;
@@ -36,6 +38,9 @@ export function MealTicket({
     pending?: boolean;
   };
   editHref?: string;
+  /** Card can be dragged onto a day. */
+  draggable?: boolean;
+  dragFromDayId?: string;
 }) {
   return (
     <div
@@ -44,6 +49,9 @@ export function MealTicket({
       aria-label={
         meal.variantLabel ? `${meal.name}, ${meal.variantLabel}` : meal.name
       }
+      data-drag-meal={draggable ? meal.id : undefined}
+      data-drag-name={draggable ? meal.name : undefined}
+      data-drag-from={dragFromDayId}
       onClick={onSelect}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
@@ -53,7 +61,7 @@ export function MealTicket({
       }}
       className={`group relative flex w-full overflow-hidden rounded-[16px] border bg-[var(--card)] text-left transition-transform ${
         selected ? "border-2 border-[var(--ink)]" : "border-[var(--line)]"
-      } ${compact ? "" : "hover:-translate-y-0.5"}`}
+      } ${draggable ? "cursor-grab select-none" : ""} ${compact ? "" : "hover:-translate-y-0.5"}`}
     >
       <span
         className="w-1.5 shrink-0"

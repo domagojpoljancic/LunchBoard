@@ -45,7 +45,7 @@ export function DaySheet({
   }
 
   return (
-    <div className="sheet fixed inset-x-0 bottom-0 z-40 max-h-[85vh] overflow-y-auto p-5 md:absolute md:inset-auto md:right-0 md:top-24 md:bottom-6 md:w-[400px]">
+    <div className="sheet fixed inset-x-0 bottom-0 z-40 max-h-[85vh] overflow-y-auto p-5 md:static md:z-auto md:h-full md:max-h-none md:w-[320px] md:shrink-0 md:overflow-y-auto">
       <div className="mb-4 flex items-start justify-between gap-3">
         <h2 className="font-display text-3xl leading-tight">
           {day.meal?.name ?? "Pick a meal"}
@@ -179,7 +179,7 @@ export function DaySheet({
             )}
           </div>
 
-          <div className="flex flex-col gap-2">
+          <div className="sticky bottom-0 flex flex-col gap-2 bg-[var(--card)] pt-3">
             {!day.leftoverOfDayId ? (
               <Link href={`/cook/${day.id}`} className="btn-primary text-center">
                 Cook this

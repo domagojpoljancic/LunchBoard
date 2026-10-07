@@ -51,7 +51,7 @@ Side checkboxes are the suggested sides for this meal. Changing them updates `Da
 
 ## Add meal
 
-Fields: name (required), at least one ingredient (required), protein group optional, hands-on minutes optional, total minutes optional.
+Fields: name, at least one ingredient, protein, hands-on minutes, and total minutes are all required. Total minutes cannot be shorter than the hands-on time. The meal is not saved until every one of them is filled.
 
 Save creates confidence `KNOW`, method `OTHER`, base servings 3, `completePlate` false, one protein variant if a protein was chosen (label from the group, default true), otherwise one `OTHER` variant labeled “No specific protein”.
 

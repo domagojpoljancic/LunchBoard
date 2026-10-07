@@ -18,16 +18,21 @@ const FILTERS = [
 export type LibraryMeal = TicketMeal & {
   method: string;
   shelf: "CAN_COOK" | "SIMILAR" | "NEEDS_RECIPE";
+  cookCount?: number;
+  nudgeDismissedAtCookCount?: number;
 };
 
 export function Library({
   meals,
   selectedId,
   onSelect,
+  beforeSelect,
 }: {
   meals: LibraryMeal[];
   selectedId: string | null;
   onSelect: (id: string | null) => void;
+  /** Return true to swallow the click, used after a drag. */
+  beforeSelect?: () => boolean;
 }) {
   const [query, setQuery] = useState("");
   const [protein, setProtein] = useState<string>("ALL");
@@ -61,44 +66,54 @@ export function Library({
   ];
 
   return (
-    <aside className="sheet flex h-full flex-col p-4">
-      <input
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder="Search meals"
-        className="h-11 w-full rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3"
-      />
-
-      <div className="mt-3 flex flex-wrap gap-2">
-        {FILTERS.map((f) => {
-          const selected = protein === f.key;
-          return (
-            <button
-              key={f.key}
-              type="button"
-              onClick={() => setProtein(f.key)}
-              className={`inline-flex h-9 items-center gap-2 rounded-full px-3 text-sm font-semibold ${
-                selected ? "seg-active" : "border border-[var(--line)] seg-idle"
-              }`}
-            >
-              {f.key !== "ALL" ? (
-                <span
-                  className="h-1.5 w-1.5 rounded-full"
-                  style={{ background: proteinColor(f.key) }}
-                />
-              ) : null}
-              {f.label}
-            </button>
-          );
-        })}
+    <aside className="sheet w-full min-w-0 p-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search meals"
+          aria-label="Search meals"
+          className="field flat w-full sm:w-56"
+        />
+        <div className="flex flex-wrap gap-2">
+          {FILTERS.map((f) => {
+            const selected = protein === f.key;
+            return (
+              <button
+                key={f.key}
+                type="button"
+                onClick={() => setProtein(f.key)}
+                className={`inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-sm font-semibold ${
+                  selected ? "seg-active" : "border border-[var(--line)] seg-idle"
+                }`}
+              >
+                {f.key !== "ALL" ? (
+                  <span
+                    className="h-1.5 w-1.5 rounded-full"
+                    style={{ background: proteinColor(f.key) }}
+                  />
+                ) : null}
+                {f.label}
+              </button>
+            );
+          })}
+        </div>
+        <Link href="/meals/new" className="btn-outline ml-auto">
+          Add a meal
+        </Link>
       </div>
-
-      <div className="mt-4 min-h-0 flex-1 space-y-5 overflow-y-auto">
+      <p id="drag-hint" className="mt-2 text-sm text-[var(--muted)]">
+        Drag a meal onto a day, or select it and click the day.
+      </p>
+      <div
+        className="shelf-scroll mt-2 flex items-start gap-4 overflow-x-auto pb-1"
+        aria-describedby="drag-hint"
+      >
         {shelves.map((shelf) => (
-          <section key={shelf.key}>
+          <section key={shelf.key} className="shrink-0">
             <h2 className="section-label mb-2">{shelf.title}</h2>
             {shelf.key === "CAN_COOK" && shelf.items.length === 0 ? (
-              <p className="text-sm text-[var(--muted)]">
+              <p className="w-[220px] text-sm text-[var(--muted)]">
                 Meals you know will land here. Mark one, or add your own.
               </p>
             ) : null}
@@ -106,44 +121,48 @@ export function Library({
             shelf.items.length === 0 &&
             shelf.key === "NEEDS_RECIPE" &&
             filtered.length === 0 ? (
-              <p className="text-sm text-[var(--muted)]">No meal matches that.</p>
+              <p className="w-[220px] text-sm text-[var(--muted)]">
+                No meal matches that.
+              </p>
             ) : null}
-            <div className="space-y-2">
+            <div className="flex gap-2">
               {shelf.items.map((meal) => {
                 const known =
                   meal.confidence === "KNOW" || meal.confidence === "PROMPT";
                 return (
-                  <MealTicket
-                    key={meal.id}
-                    meal={meal}
-                    compact
-                    selected={selectedId === meal.id}
-                    onSelect={() =>
-                      onSelect(selectedId === meal.id ? null : meal.id)
-                    }
-                    knowToggle={{
-                      known,
-                      pending: pending && togglingId === meal.id,
-                      onToggle: () => {
-                        setTogglingId(meal.id);
-                        startTransition(async () => {
-                          await setConfidence(meal.id, known ? "RECIPE" : "KNOW");
-                          setTogglingId(null);
-                        });
-                      },
-                    }}
-                    editHref={`/meals/${meal.id}`}
-                  />
+                  <div key={meal.id} className="w-[220px] shrink-0">
+                    <MealTicket
+                      meal={meal}
+                      compact
+                      draggable
+                      selected={selectedId === meal.id}
+                      onSelect={() => {
+                        if (beforeSelect?.()) return;
+                        onSelect(selectedId === meal.id ? null : meal.id);
+                      }}
+                      knowToggle={{
+                        known,
+                        pending: pending && togglingId === meal.id,
+                        onToggle: () => {
+                          setTogglingId(meal.id);
+                          startTransition(async () => {
+                            await setConfidence(
+                              meal.id,
+                              known ? "RECIPE" : "KNOW",
+                            );
+                            setTogglingId(null);
+                          });
+                        },
+                      }}
+                      editHref={`/meals/${meal.id}`}
+                    />
+                  </div>
                 );
               })}
             </div>
           </section>
         ))}
       </div>
-
-      <Link href="/meals/new" className="btn-outline mt-4 w-full">
-        Add a meal
-      </Link>
     </aside>
   );
 }

@@ -50,11 +50,15 @@ export function DayColumn({
   selectedMealName,
   onEmptyClick,
   onFilledClick,
+  dropActive,
+  beforeSelect,
 }: {
   day: DayView;
   selectedMealName: string | null;
   onEmptyClick: () => void;
   onFilledClick: () => void;
+  dropActive?: boolean;
+  beforeSelect?: () => boolean;
 }) {
   const warn =
     day.warningActive != null
@@ -65,9 +69,9 @@ export function DayColumn({
 
   if (!day.enabled) {
     return (
-      <section className="sheet flex min-h-[120px] flex-col items-center justify-center gap-2 p-2 md:min-h-[70vh] md:w-11 md:shrink-0 md:justify-start md:px-0 md:py-3">
+      <section className="sheet flex min-h-[120px] flex-col items-center justify-center gap-2 p-2 md:h-full md:w-11 md:shrink-0 md:justify-start md:px-0 md:py-3">
         <div className="section-label text-[10px] leading-none">
-          {weekdayLabel(day.date).slice(0, 1)}
+          {weekdayLabel(day.date).slice(0, 2)}
         </div>
         <div className="font-display text-lg leading-none">
           {dayNumber(day.date)}
@@ -85,7 +89,12 @@ export function DayColumn({
   }
 
   return (
-    <section className="sheet flex min-h-[160px] flex-col p-3 md:min-h-[70vh]">
+    <section
+      data-drop-day={day.id}
+      className={`sheet flex min-h-[160px] flex-col p-3 md:h-full md:min-h-0 md:overflow-y-auto ${
+        dropActive ? "outline outline-2 outline-offset-[-2px] outline-[var(--ink)]" : ""
+      }`}
+    >
       <div className="mb-2 flex items-baseline justify-between gap-2">
         <div className="min-w-0">
           <div className="section-label">{weekdayLabel(day.date)}</div>
@@ -113,7 +122,12 @@ export function DayColumn({
               variantLabel: day.meal.variantLabel,
               hasMultipleVariants: day.meal.variants.length > 1,
             }}
-            onSelect={onFilledClick}
+            draggable={!day.leftoverOfDayId}
+            dragFromDayId={day.leftoverOfDayId ? undefined : day.id}
+            onSelect={() => {
+              if (beforeSelect?.()) return;
+              onFilledClick();
+            }}
             onCycleVariant={
               day.leftoverOfDayId
                 ? undefined

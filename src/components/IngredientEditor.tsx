@@ -31,6 +31,7 @@ export function IngredientEditor({
   const [name, setName] = useState("");
   const [quantity, setQuantity] = useState("");
   const [unit, setUnit] = useState<"G" | "ML" | "PIECE" | "BUNCH" | "">("G");
+  const [error, setError] = useState<string | null>(null);
 
   return (
     <section className="space-y-3">
@@ -42,7 +43,8 @@ export function IngredientEditor({
             className="flex flex-wrap items-center gap-2 border-b border-[var(--line)] py-2"
           >
             <input
-              className="min-w-[140px] flex-1 rounded-lg border border-[var(--line)] bg-[var(--paper)] px-2 py-2"
+              className="field flat min-w-[140px] flex-1"
+              aria-label={`${ing.name} name`}
               defaultValue={ing.name}
               onBlur={(e) => {
                 const value = e.target.value.trim();
@@ -52,7 +54,9 @@ export function IngredientEditor({
               }}
             />
             <input
-              className="w-[72px] rounded-lg border border-[var(--line)] bg-[var(--paper)] px-2 py-2"
+              className="field flat w-[88px]"
+              inputMode="decimal"
+              aria-label={`${ing.name} amount`}
               defaultValue={ing.quantity ?? ""}
               onBlur={(e) => {
                 const raw = e.target.value.trim();
@@ -65,7 +69,8 @@ export function IngredientEditor({
               }}
             />
             <select
-              className="rounded-lg border border-[var(--line)] bg-[var(--paper)] px-2 py-2"
+              className="field flat fit"
+              aria-label={`${ing.name} unit`}
               defaultValue={ing.unit ?? ""}
               onChange={(e) =>
                 start(() =>
@@ -119,15 +124,16 @@ export function IngredientEditor({
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="mt-1 h-11 w-full rounded-lg border border-[var(--line)] bg-[var(--paper)] px-2"
+            className="field"
           />
         </label>
         <label>
           <span className="section-label">Amount</span>
           <input
             value={quantity}
+            inputMode="decimal"
             onChange={(e) => setQuantity(e.target.value)}
-            className="mt-1 h-11 w-[72px] rounded-lg border border-[var(--line)] bg-[var(--paper)] px-2"
+            className="field w-[88px]"
           />
         </label>
         <label>
@@ -135,7 +141,7 @@ export function IngredientEditor({
           <select
             value={unit}
             onChange={(e) => setUnit(e.target.value as typeof unit)}
-            className="mt-1 h-11 rounded-lg border border-[var(--line)] bg-[var(--paper)] px-2"
+            className="field fit"
           >
             <option value="G">g</option>
             <option value="ML">ml</option>
@@ -149,12 +155,24 @@ export function IngredientEditor({
           className="btn-outline"
           disabled={pending || !name.trim()}
           onClick={() => {
-            const role = defaultRole(name);
+            const trimmed = name.trim();
+            if (!trimmed) {
+              setError("Give the ingredient a name.");
+              return;
+            }
+            const amount =
+              quantity.trim() === "" ? null : Number(quantity.replace(",", "."));
+            if (amount != null && !Number.isFinite(amount)) {
+              setError("Amount needs to be a number, or left empty.");
+              return;
+            }
+            setError(null);
+            const role = defaultRole(trimmed);
             start(async () => {
               await addIngredient({
                 mealId,
-                name,
-                quantity: quantity.trim() === "" ? null : Number(quantity),
+                name: trimmed,
+                quantity: amount,
                 unit: unit || null,
                 role,
                 variantId: variantId ?? null,
@@ -167,6 +185,11 @@ export function IngredientEditor({
           Add ingredient
         </button>
       </div>
+      {error ? (
+        <p role="alert" className="text-sm text-[var(--warning)]">
+          {error}
+        </p>
+      ) : null}
       {name && defaultRole(name) === "PANTRY" ? (
         <p className="text-sm text-[var(--muted)]">
           Cupboard item. Switch it if you need to buy it.

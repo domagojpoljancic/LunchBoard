@@ -63,7 +63,7 @@ committed screenshot. Boxes that are still open are listed with their reason in 
 - [x] Tickets show a protein stripe in the spec colors
 - [x] Warnings and coach lines use the yellow sticky
 - [x] Copy matches `docs/08-copy.md` for the strings in that file
-- [x] At 390px wide, days are a full-width vertical stack, the page never scrolls sideways, Meals opens the library, and cook view is one column
+- [x] At 390px wide, days are a full-width vertical stack, the meal shelf stays on top and scrolls inside itself, the page never scrolls sideways, and cook view is one column
 - [ ] Focus is visible on the prep control, the portion stepper, and list checkboxes
 - [x] Login shows the local sign-in hint
 

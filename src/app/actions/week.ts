@@ -7,6 +7,7 @@ import { revalidateApp } from "@/lib/revalidate-app";
 import {
   cuid,
   dayIdSchema,
+  moveDayMealSchema,
   setDaySidesSchema,
   updateDayEnabledSchema,
   updateDayPrepSchema,
@@ -100,6 +101,109 @@ export async function clearDay(dayId: string) {
     });
   });
   await rebuildWeek(day.weekId);
+  revalidateApp();
+}
+
+export async function moveDayMeal(fromDayId: string, toDayId: string) {
+  const parsed = moveDayMealSchema.parse({ fromDayId, toDayId });
+  if (parsed.fromDayId === parsed.toDayId) return;
+  const user = await requireUser();
+  const from = await ownedDay(parsed.fromDayId, user.id);
+  const to = await ownedDay(parsed.toDayId, user.id);
+  if (from.weekId !== to.weekId) throw new Error("Different weeks");
+  if (!from.enabled || !to.enabled) return;
+  if (!from.mealId || from.leftoverOfDayId) return;
+
+  await prisma.$transaction(async (tx) => {
+    const fromSides = await tx.dayPlanSide.findMany({
+      where: { dayPlanId: from.id },
+    });
+    const toSides = await tx.dayPlanSide.findMany({
+      where: { dayPlanId: to.id },
+    });
+    await tx.dayPlanSide.deleteMany({
+      where: { dayPlanId: { in: [from.id, to.id] } },
+    });
+
+    const carried = {
+      mealId: from.mealId,
+      variantId: from.variantId,
+      servings: from.servings,
+      prepWindow: from.prepWindow,
+      cookedAt: from.cookedAt,
+      fillReason: from.fillReason,
+      leftoverOfDayId: null,
+    };
+
+    if (!to.mealId || to.leftoverOfDayId) {
+      await tx.dayPlan.update({ where: { id: to.id }, data: carried });
+      await tx.dayPlan.update({
+        where: { id: from.id },
+        data: {
+          mealId: null,
+          variantId: null,
+          cookedAt: null,
+          fillReason: null,
+          leftoverOfDayId: null,
+        },
+      });
+      if (fromSides.length) {
+        await tx.dayPlanSide.createMany({
+          data: fromSides.map((side) => ({
+            dayPlanId: to.id,
+            sideId: side.sideId,
+          })),
+        });
+      }
+      await tx.dayPlan.updateMany({
+        where: { leftoverOfDayId: from.id },
+        data: { leftoverOfDayId: to.id },
+      });
+      return;
+    }
+
+    await tx.dayPlan.update({ where: { id: to.id }, data: carried });
+    await tx.dayPlan.update({
+      where: { id: from.id },
+      data: {
+        mealId: to.mealId,
+        variantId: to.variantId,
+        servings: to.servings,
+        prepWindow: to.prepWindow,
+        cookedAt: to.cookedAt,
+        fillReason: to.fillReason,
+        leftoverOfDayId: null,
+      },
+    });
+    const sideRows = [
+      ...fromSides.map((side) => ({ dayPlanId: to.id, sideId: side.sideId })),
+      ...toSides.map((side) => ({ dayPlanId: from.id, sideId: side.sideId })),
+    ];
+    if (sideRows.length) await tx.dayPlanSide.createMany({ data: sideRows });
+
+    const fromFollowers = await tx.dayPlan.findMany({
+      where: { leftoverOfDayId: from.id },
+      select: { id: true },
+    });
+    const toFollowers = await tx.dayPlan.findMany({
+      where: { leftoverOfDayId: to.id },
+      select: { id: true },
+    });
+    if (fromFollowers.length) {
+      await tx.dayPlan.updateMany({
+        where: { id: { in: fromFollowers.map((day) => day.id) } },
+        data: { leftoverOfDayId: to.id },
+      });
+    }
+    if (toFollowers.length) {
+      await tx.dayPlan.updateMany({
+        where: { id: { in: toFollowers.map((day) => day.id) } },
+        data: { leftoverOfDayId: from.id },
+      });
+    }
+  });
+
+  await rebuildWeek(from.weekId);
   revalidateApp();
 }
 

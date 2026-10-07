@@ -8,10 +8,13 @@ import { normalizeWeekStart } from "@/lib/weeks";
 
 export default async function WeekPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ weekStart: string }>;
+  searchParams: Promise<{ nudge?: string }>;
 }) {
   const { weekStart } = await params;
+  const { nudge } = await searchParams;
   const normalized = normalizeWeekStart(weekStart);
   if (!normalized) redirect("/week");
   if (normalized !== weekStart) redirect(`/week/${normalized}`);
@@ -36,6 +39,7 @@ export default async function WeekPage({
         diversityGroup={board.diversityGroup}
         diversityCount={board.diversityCount}
         diversityDismissed={board.diversityDismissed}
+        nudgeMealId={nudge ?? null}
       />
     </>
   );

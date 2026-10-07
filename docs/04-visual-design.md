@@ -100,20 +100,21 @@ Right: text buttons **Lists** and, on a day, **Cook**. Text buttons are Outfit 6
 
 ## Desktop layout
 
-From 1100px wide:
+From 800px wide the board is one screen tall. Nothing falls off the bottom of the viewport.
 
-- Page padding 24px.
-- Library 340px, `--card`, radius 20px, full height under the bar, padding 16px.
-- Gap 16px.
-- Board is a row of 7 equal columns, gap 12px.
-- A day column is `--card`, radius 20px, min-height 70vh, padding 12px, shadow `--shadow`.
+- A zoom slider and **Fit week** sit under the top bar, above the meals and the days.
+- Meals are a horizontal shelf under that, full width, so the days get the width back.
+- The open day card docks on the left of the days. It does not cover them.
+- Days are a row of equal columns that fill the remaining height. At 100% they fit the width.
+  Zooming in widens them and the day row scrolls sideways inside the board, not the page.
+- Drag a meal card onto a day to place it. Drag a placed card onto another day to move it.
+  Selecting a meal and clicking the day still works, and so do keys 1–7.
 
-Below 1100px and above 800px the library can sit above the board. Below 800px:
+Below 800px:
 
-- Days are a vertical stack of full-width day cards. The page never scrolls sideways. (This replaces
-  the earlier horizontal scroll-snap row, by the call in `docs/10-next-plan.md`. The sideways scroll
-  strip survives on desktop, inside the board, when the enabled columns do not fit.)
-- Library is closed. A **Meals** button opens it as a full-height sheet.
+- Days are a vertical stack of full-width day cards. The page never scrolls sideways. The meal
+  shelf stays on top and scrolls sideways inside itself.
+- The day card is a bottom sheet.
 - Lists stack: To buy, then Cupboard.
 - Cook view is already one column.
 
@@ -202,7 +203,7 @@ One column, max-width 680px, centered on the grid.
 
 Same paper, one column, max-width 720px.
 
-Add meal shows only: name (Fraunces 32px input), ingredient stack, protein, hands-on minutes, total minutes, save. Method, cuisine, and steps are on the editor after save, not on the create form.
+Add meal shows only: name, ingredient stack, protein, hands-on minutes, total minutes, save. Every one of those is required, and total time cannot be shorter than the hands-on time. Inputs share the 44px field style; the name is Fraunces at a normal field size. Method, cuisine, and steps are on the editor after save, not on the create form.
 
 Ingredient row, wrapping on small screens:
 
