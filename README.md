@@ -50,20 +50,25 @@ Say **"start next plan"**, or run **`/build-next`**. Spec: [docs/10-next-plan.md
 
 ## Quick start
 
+Node 22 or newer.
+
 ```bash
+git clone https://github.com/domagojpoljancic/LunchBoard.git
+cd LunchBoard
 npm install
 cp .env.example .env
-npx prisma migrate dev
-npx prisma db seed
+npx prisma migrate dev   # creates prisma/dev.db and seeds the 12 starter meals
 npm run dev
 ```
 
-Set `AUTH_SECRET` in `.env` to any long random string before you sign in.
-
-Local sign-in:
+Then open <http://localhost:3000>. Sign in with:
 
 - Email: `cook@lunchboard.local`
 - Password: `lunchboard`
+
+Both fields come prefilled. `.env.example` ships a placeholder `AUTH_SECRET` that works for local use;
+replace it with a long random string anywhere the app is reachable by someone else. Re-seeding is safe,
+and `npx prisma db seed` on its own will top up the starter meals without touching your edits.
 
 ## Tests
 
