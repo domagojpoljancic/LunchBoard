@@ -56,7 +56,7 @@ export async function dismissCookPrompt() {
     where: { id: user.id },
     data: { lastCookPromptAt: new Date() },
   });
-  revalidateApp();
+  // Do not revalidate — Later is session-local; refreshing would remount the sheet.
 }
 
 export async function listPendingCookConfirmations() {

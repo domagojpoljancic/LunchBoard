@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import {
   confirmPoolCookAction,
   skipPoolCookAction,
@@ -24,8 +24,15 @@ export function PoolSweepSheet({
   today: string;
 }) {
   const router = useRouter();
-  const [open, setOpen] = useState(weekEnded && entries.length > 0);
+  const [open, setOpen] = useState(false);
   const [busy, start] = useTransition();
+
+  useEffect(() => {
+    const dismissed =
+      typeof window !== "undefined" &&
+      sessionStorage.getItem("lb-pool-sweep-later") === "1";
+    if (weekEnded && entries.length > 0 && !dismissed) setOpen(true);
+  }, [weekEnded, entries.length]);
 
   if (!open || entries.length === 0) return null;
 
@@ -80,7 +87,10 @@ export function PoolSweepSheet({
         <button
           type="button"
           className="btn-text"
-          onClick={() => setOpen(false)}
+          onClick={() => {
+            sessionStorage.setItem("lb-pool-sweep-later", "1");
+            setOpen(false);
+          }}
         >
           Later
         </button>

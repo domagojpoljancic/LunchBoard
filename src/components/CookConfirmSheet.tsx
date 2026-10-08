@@ -16,6 +16,8 @@ export type PendingCookItem = {
   preparedName?: string | null;
 };
 
+const SESSION_KEY = "lb-cook-prompt-later";
+
 export function CookConfirmSheet({
   pending,
   show,
@@ -25,13 +27,17 @@ export function CookConfirmSheet({
 }) {
   const router = useRouter();
   const [queue, setQueue] = useState(pending);
-  const [open, setOpen] = useState(show && pending.length > 0);
+  const [open, setOpen] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [busy, start] = useTransition();
 
   useEffect(() => {
     setQueue(pending);
-    if (show && pending.length > 0) setOpen(true);
+    const dismissed =
+      typeof window !== "undefined" &&
+      sessionStorage.getItem(SESSION_KEY) === "1";
+    if (show && pending.length > 0 && !dismissed) setOpen(true);
+    if (dismissed) setOpen(false);
   }, [pending, show]);
 
   if (!open || queue.length === 0) return null;
@@ -108,8 +114,9 @@ export function CookConfirmSheet({
             disabled={busy}
             onClick={() =>
               start(async () => {
-                await dismissCookPrompt();
+                sessionStorage.setItem(SESSION_KEY, "1");
                 setOpen(false);
+                await dismissCookPrompt();
               })
             }
           >
