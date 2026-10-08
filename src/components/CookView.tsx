@@ -31,6 +31,8 @@ export function CookView({
   cupboard,
   keypoints,
   steps,
+  cookKind,
+  preparedDishName,
 }: {
   dayId: string;
   weekStart: string;
@@ -50,11 +52,14 @@ export function CookView({
   cupboard: string[];
   keypoints: string[];
   steps: string[];
+  cookKind?: string | null;
+  preparedDishName?: string | null;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
+  const isHeat = cookKind === "HEAT_PREPARED" || Boolean(preparedDishName);
 
-  if (!meal) {
+  if (!meal && !isHeat) {
     return (
       <main className="mx-auto max-w-[680px] p-6">
         <p className="text-[var(--muted)]">Place a meal</p>
@@ -65,7 +70,13 @@ export function CookView({
     );
   }
 
+  const title = isHeat
+    ? preparedDishName ?? meal?.name ?? "Ready to heat"
+    : meal!.name;
+
   const showNudge =
+    !isHeat &&
+    meal &&
     meal.confidence !== "KNOW" &&
     meal.cookCount >= meal.nudgeDismissedAtCookCount + 3;
 
@@ -74,52 +85,66 @@ export function CookView({
       <Link href={`/week/${weekStart}`} className="btn-text muted">
         Board
       </Link>
-      <h1 className="font-display text-[44px] leading-tight">{meal.name}</h1>
+      <h1 className="font-display text-[44px] leading-tight">{title}</h1>
       <p className="text-[var(--muted)]">
-        {variantLabel ? `${variantLabel} · ` : ""}
-        {servings} portions ·{" "}
-        {prepWindow === "SAME_DAY" ? "At lunch" : "Night before"}
+        {isHeat
+          ? "Heat and serve"
+          : variantLabel
+            ? `${variantLabel} · `
+            : ""}
+        {!isHeat || servings > 0
+          ? `${servings} portion${servings === 1 ? "" : "s"}`
+          : ""}
+        {!isHeat
+          ? ` · ${prepWindow === "SAME_DAY" ? "At lunch" : "Night before"}`
+          : ""}
       </p>
 
-      {meal.confidence === "KNOW" ? (
+      {isHeat ? (
+        <p>Warm it through and eat.</p>
+      ) : meal?.confidence === "KNOW" ? (
         <p>You know this one.</p>
-      ) : meal.confidence === "PROMPT" ? (
+      ) : meal?.confidence === "PROMPT" ? (
         <p>A few cues.</p>
       ) : null}
 
-      <section>
-        <h2 className="section-label mb-2">For the meal</h2>
-        <ul className="space-y-1">
-          {mealIngredients.map((ing) => (
-            <li key={ing.name} className="flex justify-between gap-4">
-              <span>{ing.name}</span>
-              <span className="font-display">
-                {formatAmount(ing.quantity, ing.unit)}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </section>
+      {!isHeat ? (
+        <section>
+          <h2 className="section-label mb-2">For the meal</h2>
+          <ul className="space-y-1">
+            {mealIngredients.map((ing) => (
+              <li key={ing.name} className="flex justify-between gap-4">
+                <span>{ing.name}</span>
+                <span className="font-display">
+                  {formatAmount(ing.quantity, ing.unit)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
-      {sideGroups.map((group) =>
-        group.ingredients.length ? (
-          <section key={group.name}>
-            <h2 className="section-label mb-2">For {group.name}</h2>
-            <ul className="space-y-1">
-              {group.ingredients.map((ing) => (
-                <li key={ing.name} className="flex justify-between gap-4">
-                  <span>{ing.name}</span>
-                  <span className="font-display">
-                    {formatAmount(ing.quantity, ing.unit)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null,
-      )}
+      {!isHeat
+        ? sideGroups.map((group) =>
+            group.ingredients.length ? (
+              <section key={group.name}>
+                <h2 className="section-label mb-2">For {group.name}</h2>
+                <ul className="space-y-1">
+                  {group.ingredients.map((ing) => (
+                    <li key={ing.name} className="flex justify-between gap-4">
+                      <span>{ing.name}</span>
+                      <span className="font-display">
+                        {formatAmount(ing.quantity, ing.unit)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null,
+          )
+        : null}
 
-      {cupboard.length ? (
+      {!isHeat && cupboard.length ? (
         <section>
           <h2 className="section-label mb-2">From the cupboard</h2>
           <ul className="space-y-1">
@@ -130,7 +155,7 @@ export function CookView({
         </section>
       ) : null}
 
-      {meal.confidence !== "RECIPE" && keypoints.length > 0 ? (
+      {!isHeat && meal && meal.confidence !== "RECIPE" && keypoints.length > 0 ? (
         <section>
           <h2 className="section-label mb-2">Keypoints</h2>
           <ol className="space-y-3">
@@ -146,7 +171,7 @@ export function CookView({
         </section>
       ) : null}
 
-      {meal.confidence === "RECIPE" ? (
+      {!isHeat && meal?.confidence === "RECIPE" ? (
         <>
           {keypoints.length > 0 ? (
             <section>
@@ -174,21 +199,40 @@ export function CookView({
         </>
       ) : null}
 
-      {showNudge ? (
+      {isHeat && keypoints.length > 0 ? (
+        <section>
+          <h2 className="section-label mb-2">Keypoints</h2>
+          <ul className="space-y-2">
+            {keypoints.map((body) => (
+              <li key={body}>{body}</li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {showNudge && meal ? (
         <CoachSticky
           actions={
             <>
               <button
                 type="button"
                 className="btn-text"
-                onClick={() => start(() => acceptConfidenceNudge(meal.id))}
+                onClick={() =>
+                  start(async () => {
+                    await acceptConfidenceNudge(meal.id);
+                  })
+                }
               >
                 Yes, update
               </button>
               <button
                 type="button"
                 className="btn-text muted"
-                onClick={() => start(() => dismissConfidenceNudge(meal.id))}
+                onClick={() =>
+                  start(async () => {
+                    await dismissConfidenceNudge(meal.id);
+                  })
+                }
               >
                 Not now
               </button>
@@ -206,7 +250,11 @@ export function CookView({
           type="button"
           className="btn-outline"
           disabled={pending}
-          onClick={() => start(() => undoCook(dayId))}
+          onClick={() =>
+            start(async () => {
+              await undoCook(dayId);
+            })
+          }
         >
           Cooked · Undo
         </button>
@@ -218,18 +266,20 @@ export function CookView({
           onClick={() =>
             start(async () => {
               const willNudge =
+                !isHeat &&
+                meal &&
                 meal.confidence !== "KNOW" &&
                 meal.cookCount + 1 >= meal.nudgeDismissedAtCookCount + 3;
               await logCook(dayId);
               router.push(
-                willNudge
+                willNudge && meal
                   ? `/week/${weekStart}?nudge=${meal.id}`
                   : `/week/${weekStart}`,
               );
             })
           }
         >
-          I cooked this
+          {isHeat ? "I heated this" : "I cooked this"}
         </button>
       )}
     </main>

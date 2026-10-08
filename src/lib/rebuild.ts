@@ -6,8 +6,10 @@ import {
   rebuildPantry,
   rebuildShopping,
   type DesiredLine,
+  type IngredientLine,
 } from "@/lib/list";
 import { nameKey } from "@/lib/name-key";
+import { collectPoolLines, dayShouldCollectRecipe } from "@/lib/pool";
 import { shiftWeek } from "@/lib/weeks";
 
 export async function rebuildWeek(
@@ -34,14 +36,36 @@ export async function rebuildWeek(
           sides: { include: { side: { include: { ingredients: true } } } },
         },
       },
+      poolEntries: {
+        include: {
+          meal: {
+            include: {
+              ingredients: true,
+              variants: { include: { ingredients: true } },
+            },
+          },
+          sides: { include: { side: { include: { ingredients: true } } } },
+        },
+        orderBy: { sortOrder: "asc" },
+      },
     },
   });
 
   const desired: DesiredLine[] = [];
 
   for (const day of week.days) {
-    if (!day.enabled || !day.meal) continue;
-    if (day.leftoverOfDayId) continue;
+    if (
+      !dayShouldCollectRecipe({
+        enabled: day.enabled,
+        mealId: day.mealId,
+        leftoverOfDayId: day.leftoverOfDayId,
+        cookKind: day.cookKind,
+        preparedDishId: day.preparedDishId,
+      })
+    ) {
+      continue;
+    }
+    if (!day.meal) continue;
     const meal = day.meal;
     const defaultVariant =
       meal.variants.find((v) => v.isDefault) ?? meal.variants[0] ?? null;
@@ -62,6 +86,34 @@ export async function rebuildWeek(
         sideIngredients,
       }),
     );
+  }
+
+  if (week.planningMode === "POOL") {
+    const poolDesired = collectPoolLines(
+      week.poolEntries.map((entry) => {
+        const meal = entry.meal;
+        const defaultVariant =
+          meal?.variants.find((v) => v.isDefault) ?? meal?.variants[0] ?? null;
+        return {
+          id: entry.id,
+          servings: entry.servings,
+          mealId: entry.mealId,
+          preparedDishId: entry.preparedDishId,
+          pinnedDayPlanId: entry.pinnedDayPlanId,
+          baseServings: meal?.baseServings ?? 3,
+          selectedVariantId: entry.variantId ?? defaultVariant?.id ?? null,
+          defaultVariantId: defaultVariant?.id ?? null,
+          shared: (meal?.ingredients.filter((i) => !i.variantId) ??
+            []) as IngredientLine[],
+          variantIngredients: (meal?.ingredients.filter((i) => i.variantId) ??
+            []) as IngredientLine[],
+          sideIngredients: entry.sides.flatMap(
+            (s) => s.side.ingredients,
+          ) as IngredientLine[],
+        };
+      }),
+    );
+    desired.push(...poolDesired);
   }
 
   const merged = mergeLines(desired);

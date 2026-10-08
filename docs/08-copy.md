@@ -80,6 +80,55 @@ Protein names in the diversity line: beef, white meat, fish, vegetarian, vegan, 
 | Unit bunch | bunch |
 | Copy list | Copy list |
 | Copy list, copied | Copied |
+| Stock advisory | You already have ~{amount} |
+| Different unit | You have this under a different unit |
+| Apply stock | Apply stock to list |
+| Add purchase prompt | Add {name} to pantry inventory? |
+| Add purchase yes | Add |
+| Add purchase no | Not now |
+| Remember preference | Remember this choice |
+
+## At home
+
+| Element | Text |
+| --- | --- |
+| Nav | At home |
+| Title | At home |
+| Intro | Stock you keep across weeks, and dishes already cooked and ready to heat. |
+| Inventory tab | Inventory |
+| Prepared tab | Prepared |
+| Add staple | Add staple |
+| Empty inventory | Nothing logged yet. Add pasta, rice, or freezer protein when you have it. |
+| Add prepared | Add prepared dish |
+| Prepared hint | Name it however you like. No categories. |
+| Empty prepared | No ready dishes yet. Log a batch after you cook. |
+| Ate one | Ate one |
+| Running low | running low |
+| Ready to heat | Ready to heat |
+
+## Confirmation
+
+| Element | Text |
+| --- | --- |
+| Queue title | Confirm last week’s lunches ({n}) |
+| Cook prompt | Did you cook {meal} on {weekday}? |
+| Heat prompt | Did you heat {name} on {weekday}? |
+| Cooked | Cooked |
+| Skipped | Skipped |
+| Later | Later |
+
+## Week settings
+
+| Element | Text |
+| --- | --- |
+| Open | Week settings |
+| Planning day | Day by day |
+| Planning pool | Lunch pool |
+| Days view | Show days of the week |
+| Weekend | Show weekend days |
+| Pool size | Pool size |
+| Use as default | Use as default for new weeks |
+| Fill pool | Fill pool |
 
 ## Cook
 
@@ -88,6 +137,9 @@ Protein names in the diversity line: beef, white meat, fish, vegetarian, vegan, 
 | Know | You know this one. |
 | Prompt | A few cues. |
 | Cooked | I cooked this |
+| Heated | I heated this |
+| Heat and serve | Heat and serve |
+| Warm through | Warm it through and eat. |
 | Cooked, undo | Cooked · Undo |
 | Nudge to prompt | You have cooked this {n} times. Move it to roughly know? |
 | Nudge to know | You have cooked this {n} times. Mark it as a meal you know? |

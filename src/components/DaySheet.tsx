@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { placeHeatPlan } from "@/app/actions/prepared";
 import {
   clearDay,
   placeMealOnDay,
@@ -25,6 +26,7 @@ export function DaySheet({
   replacing,
   selectedMealId,
   leftoverSources,
+  preparedDishes,
   onClose,
   onStartReplace,
   onCancelReplace,
@@ -34,13 +36,20 @@ export function DaySheet({
   replacing: boolean;
   selectedMealId: string | null;
   leftoverSources?: Array<{ id: string; label: string }>;
+  preparedDishes?: Array<{ id: string; name: string; portionsRemaining: number }>;
   onClose: () => void;
   onStartReplace: () => void;
   onCancelReplace: () => void;
 }) {
   const { pending, run } = useActionBusy();
 
-  if (!day.meal && !replacing && !(leftoverSources && leftoverSources.length)) {
+  if (
+    !day.meal &&
+    !day.preparedDishId &&
+    !replacing &&
+    !(leftoverSources && leftoverSources.length) &&
+    !(preparedDishes && preparedDishes.length)
+  ) {
     return null;
   }
 
@@ -48,7 +57,7 @@ export function DaySheet({
     <div className="sheet fixed inset-x-0 bottom-0 z-40 max-h-[85vh] overflow-y-auto p-5 md:static md:z-auto md:h-full md:max-h-none md:w-[320px] md:shrink-0 md:overflow-y-auto">
       <div className="mb-4 flex items-start justify-between gap-3">
         <h2 className="font-display text-3xl leading-tight">
-          {day.meal?.name ?? "Pick a meal"}
+          {day.preparedDishName ?? day.meal?.name ?? "Pick a meal"}
         </h2>
         <button type="button" className="btn-text muted" onClick={onClose}>
           Close
@@ -79,9 +88,12 @@ export function DaySheet({
             Cancel
           </button>
         </div>
-      ) : day.meal ? (
+      ) : day.meal || day.preparedDishId ? (
         <div className="space-y-5">
-          {day.meal.variants.length > 1 ? (
+          {day.preparedDishId ? (
+            <p className="text-[var(--muted)]">Ready to heat · {day.servings} portion{day.servings === 1 ? "" : "s"}</p>
+          ) : null}
+          {day.meal && day.meal.variants.length > 1 && !day.preparedDishId ? (
             <div>
               <div className="section-label mb-2">Protein</div>
               <div className="grid grid-cols-2 overflow-hidden rounded-full border border-[var(--line)]">
@@ -182,7 +194,7 @@ export function DaySheet({
           <div className="sticky bottom-0 flex flex-col gap-2 bg-[var(--card)] pt-3">
             {!day.leftoverOfDayId ? (
               <Link href={`/cook/${day.id}`} className="btn-primary text-center">
-                Cook this
+                {day.preparedDishId ? "Heat this" : "Cook this"}
               </Link>
             ) : null}
             <button type="button" className="btn-outline" onClick={onStartReplace}>
@@ -219,29 +231,57 @@ export function DaySheet({
             )}
           </div>
         </div>
-      ) : leftoverSources && leftoverSources.length ? (
+      ) : (
         <div className="space-y-3">
-          <p className="text-[var(--muted)]">
-            Or eat leftovers from an earlier cook.
-          </p>
-          {leftoverSources.map((source) => (
-            <button
-              key={source.id}
-              type="button"
-              className="btn-outline w-full"
-              disabled={pending}
-              onClick={() => {
-                run(async () => {
-                  await setLeftoverDay(day.id, source.id);
-                  onClose();
-                });
-              }}
-            >
-              Eat leftovers from {source.label}
-            </button>
-          ))}
+          {preparedDishes && preparedDishes.length ? (
+            <>
+              <p className="text-[var(--muted)]">Heat a prepared dish.</p>
+              {preparedDishes.map((dish) => (
+                <button
+                  key={dish.id}
+                  type="button"
+                  className="btn-outline w-full"
+                  disabled={pending}
+                  onClick={() => {
+                    run(async () => {
+                      await placeHeatPlan({
+                        dayId: day.id,
+                        preparedDishId: dish.id,
+                      });
+                      onClose();
+                    });
+                  }}
+                >
+                  Heat {dish.name} ({dish.portionsRemaining} left)
+                </button>
+              ))}
+            </>
+          ) : null}
+          {leftoverSources && leftoverSources.length ? (
+            <>
+              <p className="text-[var(--muted)]">
+                Or eat leftovers from an earlier cook.
+              </p>
+              {leftoverSources.map((source) => (
+                <button
+                  key={source.id}
+                  type="button"
+                  className="btn-outline w-full"
+                  disabled={pending}
+                  onClick={() => {
+                    run(async () => {
+                      await setLeftoverDay(day.id, source.id);
+                      onClose();
+                    });
+                  }}
+                >
+                  Eat leftovers from {source.label}
+                </button>
+              ))}
+            </>
+          ) : null}
         </div>
-      ) : null}
+      )}
     </div>
   );
 }

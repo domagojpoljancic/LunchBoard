@@ -35,6 +35,10 @@ export function WeekBoard({
   diversityCount,
   diversityDismissed,
   nudgeMealId,
+  planningMode = "BY_DAY",
+  daysView = true,
+  poolEntries = [],
+  preparedDishes = [],
 }: {
   weekStart: string;
   weekId: string;
@@ -44,6 +48,21 @@ export function WeekBoard({
   diversityCount: number;
   diversityDismissed: boolean;
   nudgeMealId?: string | null;
+  planningMode?: string;
+  daysView?: boolean;
+  poolEntries?: Array<{
+    id: string;
+    mealId: string | null;
+    mealName: string | null;
+    preparedName: string | null;
+    servings: number;
+    pinnedDayPlanId: string | null;
+  }>;
+  preparedDishes?: Array<{
+    id: string;
+    name: string;
+    portionsRemaining: number;
+  }>;
 }) {
   const router = useRouter();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -146,9 +165,14 @@ export function WeekBoard({
   }
 
   const listsLink = (
-    <Link href={`/list/${weekStart}`} className="btn-text px-2 text-sm md:px-4">
-      Lists
-    </Link>
+    <>
+      <Link href="/home" className="btn-text px-2 text-sm md:px-4">
+        At home
+      </Link>
+      <Link href={`/list/${weekStart}`} className="btn-text px-2 text-sm md:px-4">
+        Lists
+      </Link>
+    </>
   );
 
   const fillButton = (
@@ -231,6 +255,7 @@ export function WeekBoard({
             replacing={replacing}
             selectedMealId={selectedId}
             leftoverSources={leftoverSourcesFor(openDay)}
+            preparedDishes={preparedDishes}
             onClose={() => {
               setOpenDayId(null);
               setReplacing(false);
@@ -297,50 +322,92 @@ export function WeekBoard({
             </CoachSticky>
           ) : null}
 
-          <div className="min-h-0 flex-1 md:overflow-auto">
-            <div
-              className="flex flex-col gap-3 md:h-full md:flex-row md:gap-2"
-              style={zoom > 100 ? { width: `${zoom}%`, minWidth: "100%" } : undefined}
-            >
-              {dayViews.map((day) => (
-                <div
-                  key={day.id}
-                  className={
-                    day.enabled
-                      ? "w-full md:h-full md:min-w-0 md:flex-1"
-                      : "w-full md:h-full md:w-11 md:shrink-0"
-                  }
-                >
-                  <DayColumn
-                    day={day}
-                    selectedMealName={selectedMeal?.name ?? null}
-                    dropActive={drag?.overDayId === day.id}
-                    beforeSelect={swallowDragClick}
-                    onEmptyClick={() => {
-                      if (swallowDragClick()) return;
-                      if (selectedId) {
-                        startTransition(async () => {
-                          await placeMealOnDay(day.id, selectedId);
+          {planningMode === "POOL" ? (
+            <div className="sheet space-y-2 p-3">
+              <div className="flex items-baseline justify-between gap-2">
+                <h2 className="font-display text-xl">Lunch pool</h2>
+                <span className="text-sm text-[var(--muted)]">
+                  {poolEntries.length} lunches
+                </span>
+              </div>
+              {poolEntries.length === 0 ? (
+                <p className="text-sm text-[var(--muted)]">
+                  Open week settings to add about five lunches for this week.
+                </p>
+              ) : (
+                <ul className="flex flex-wrap gap-2">
+                  {poolEntries.map((entry) => (
+                    <li
+                      key={entry.id}
+                      className="rounded-[var(--radius-ticket)] border border-[var(--line)] bg-[var(--paper)] px-3 py-2"
+                    >
+                      <span className="font-display">
+                        {entry.preparedName
+                          ? entry.preparedName
+                          : entry.mealName ?? "Meal"}
+                      </span>
+                      <span className="ml-2 text-sm text-[var(--muted)]">
+                        {entry.servings} portions
+                        {entry.pinnedDayPlanId ? " · pinned" : ""}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ) : null}
+
+          {daysView ? (
+            <div className="min-h-0 flex-1 md:overflow-auto">
+              <div
+                className="flex flex-col gap-3 md:h-full md:flex-row md:gap-2"
+                style={
+                  zoom > 100 ? { width: `${zoom}%`, minWidth: "100%" } : undefined
+                }
+              >
+                {dayViews.map((day) => (
+                  <div
+                    key={day.id}
+                    className={
+                      day.enabled
+                        ? "w-full md:h-full md:min-w-0 md:flex-1"
+                        : "w-full md:h-full md:w-11 md:shrink-0"
+                    }
+                  >
+                    <DayColumn
+                      day={day}
+                      selectedMealName={selectedMeal?.name ?? null}
+                      dropActive={drag?.overDayId === day.id}
+                      beforeSelect={swallowDragClick}
+                      onEmptyClick={() => {
+                        if (swallowDragClick()) return;
+                        if (selectedId) {
+                          startTransition(async () => {
+                            await placeMealOnDay(day.id, selectedId);
+                            setOpenDayId(day.id);
+                            setSelectedId(null);
+                            setReplacing(false);
+                          });
+                          return;
+                        }
+                        if (
+                          leftoverSourcesFor(day).length ||
+                          preparedDishes.length
+                        ) {
                           setOpenDayId(day.id);
-                          setSelectedId(null);
                           setReplacing(false);
-                        });
-                        return;
-                      }
-                      if (leftoverSourcesFor(day).length) {
+                        }
+                      }}
+                      onFilledClick={() => {
                         setOpenDayId(day.id);
                         setReplacing(false);
-                      }
-                    }}
-                    onFilledClick={() => {
-                      setOpenDayId(day.id);
-                      setReplacing(false);
-                    }}
-                  />
-                </div>
-              ))}
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          ) : null}
         </div>
       </div>
 

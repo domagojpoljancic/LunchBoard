@@ -52,8 +52,11 @@ export async function placeMealOnDay(dayId: string, mealId: string) {
         mealId: meal.id,
         variantId: variant?.id ?? null,
         cookedAt: null,
+        skippedAt: null,
         leftoverOfDayId: null,
         fillReason: null,
+        cookKind: "RECIPE",
+        preparedDishId: null,
         sides: {
           create: defaultSides.map((s) => ({ sideId: s.sideId })),
         },
@@ -86,8 +89,11 @@ export async function clearDay(dayId: string) {
         mealId: null,
         variantId: null,
         cookedAt: null,
+        skippedAt: null,
         leftoverOfDayId: null,
         fillReason: null,
+        cookKind: "RECIPE",
+        preparedDishId: null,
       },
     });
     await tx.dayPlan.updateMany({
@@ -409,11 +415,396 @@ export async function setLeftoverDay(dayId: string, sourceDayId: string | null) 
         servings: 1,
         prepWindow: source.prepWindow,
         cookedAt: null,
+        skippedAt: null,
         fillReason: "LEFTOVER",
+        cookKind: "LEFTOVER",
+        preparedDishId: null,
       },
     });
   });
 
   await rebuildWeek(day.weekId);
   revalidateApp();
+}
+
+import { coerceDaysViewOff, convertByDayToPool, normalizePoolTarget } from "@/lib/pool";
+import { z } from "zod";
+
+const weekModeSchema = z.object({
+  weekId: z.string().cuid(),
+  planningMode: z.enum(["BY_DAY", "POOL"]).optional(),
+  daysView: z.boolean().optional(),
+  weekendExpanded: z.boolean().optional(),
+  poolTarget: z.number().int().min(3).max(7).optional(),
+  useAsDefault: z.boolean().optional(),
+});
+
+export async function setWeekPlanningSettings(
+  input: z.infer<typeof weekModeSchema>,
+) {
+  const parsed = weekModeSchema.parse(input);
+  const user = await requireUser();
+  const week = await prisma.week.findFirst({
+    where: { id: parsed.weekId, userId: user.id },
+    include: {
+      days: { include: { sides: true }, orderBy: { date: "asc" } },
+      poolEntries: true,
+    },
+  });
+  if (!week) throw new Error("Week not found");
+
+  let planningMode = parsed.planningMode ?? week.planningMode;
+  let daysView = parsed.daysView ?? week.daysView;
+  const coerced = coerceDaysViewOff(planningMode, daysView);
+  planningMode = coerced.planningMode;
+  daysView = coerced.daysView;
+
+  const weekendExpanded =
+    parsed.weekendExpanded ?? week.weekendExpanded;
+  const poolTarget = normalizePoolTarget(
+    parsed.poolTarget ?? week.poolTarget,
+  );
+
+  const switchingToPool =
+    planningMode === "POOL" && week.planningMode !== "POOL";
+  const switchingToByDay =
+    planningMode === "BY_DAY" && week.planningMode === "POOL";
+  const expandingWeekend =
+    weekendExpanded && !week.weekendExpanded;
+  const collapsingWeekend =
+    !weekendExpanded && week.weekendExpanded;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.week.update({
+      where: { id: week.id },
+      data: { planningMode, daysView, weekendExpanded, poolTarget },
+    });
+
+    if (expandingWeekend) {
+      const weekend = week.days.filter((_, i) => i >= 5);
+      for (const day of weekend) {
+        await tx.dayPlan.update({
+          where: { id: day.id },
+          data: { enabled: true },
+        });
+      }
+    }
+    if (collapsingWeekend) {
+      const weekend = week.days.filter((_, i) => i >= 5);
+      for (const day of weekend) {
+        await tx.dayPlan.update({
+          where: { id: day.id },
+          data: { enabled: false },
+        });
+      }
+    }
+
+    if (switchingToPool && week.poolEntries.length === 0) {
+      const drafts = convertByDayToPool(
+        week.days.map((d) => ({
+          dayPlanId: d.id,
+          mealId: d.mealId,
+          variantId: d.variantId,
+          servings: d.servings,
+          prepWindow: d.prepWindow,
+          preparedDishId: d.preparedDishId,
+          cookKind: d.cookKind,
+          sideIds: d.sides.map((s) => s.sideId),
+          enabled: d.enabled,
+        })),
+      );
+      for (const draft of drafts.slice(0, poolTarget)) {
+        await tx.poolEntry.create({
+          data: {
+            weekId: week.id,
+            sortOrder: draft.sortOrder,
+            mealId: draft.mealId,
+            variantId: draft.variantId,
+            servings: draft.servings,
+            prepWindow: draft.prepWindow,
+            preparedDishId: draft.preparedDishId,
+            pinnedDayPlanId: draft.pinnedDayPlanId,
+            sides: {
+              create: draft.sideIds.map((sideId) => ({ sideId })),
+            },
+          },
+        });
+      }
+    }
+
+    if (switchingToByDay) {
+      const entries = await tx.poolEntry.findMany({
+        where: { weekId: week.id },
+        include: { sides: true },
+        orderBy: { sortOrder: "asc" },
+      });
+      const emptyDays = week.days.filter(
+        (d) => d.enabled && !d.mealId && !d.preparedDishId,
+      );
+      let dayIndex = 0;
+      for (const entry of entries) {
+        if (entry.pinnedDayPlanId) continue;
+        if (!entry.mealId && !entry.preparedDishId) continue;
+        const target = emptyDays[dayIndex++];
+        if (!target) break;
+        await tx.dayPlan.update({
+          where: { id: target.id },
+          data: {
+            mealId: entry.mealId,
+            variantId: entry.variantId,
+            servings: entry.servings,
+            prepWindow: entry.prepWindow,
+            preparedDishId: entry.preparedDishId,
+            cookKind: entry.preparedDishId ? "HEAT_PREPARED" : "RECIPE",
+            sides: {
+              create: entry.sides.map((s) => ({ sideId: s.sideId })),
+            },
+          },
+        });
+      }
+    }
+
+    if (parsed.useAsDefault) {
+      await tx.user.update({
+        where: { id: user.id },
+        data: {
+          defaultPlanningMode: planningMode,
+          defaultDaysView: daysView,
+          defaultWeekendExpanded: weekendExpanded,
+          defaultPoolTarget: poolTarget,
+        },
+      });
+    }
+  });
+
+  await rebuildWeek(week.id);
+  revalidateApp();
+}
+
+const poolMealSchema = z.object({
+  weekId: z.string().cuid(),
+  mealId: z.string().cuid(),
+});
+
+export async function addMealToPool(input: z.infer<typeof poolMealSchema>) {
+  const parsed = poolMealSchema.parse(input);
+  const user = await requireUser();
+  const week = await prisma.week.findFirst({
+    where: { id: parsed.weekId, userId: user.id },
+    include: { poolEntries: true },
+  });
+  if (!week) throw new Error("Week not found");
+  if (week.poolEntries.length >= week.poolTarget) {
+    throw new Error("Pool is full");
+  }
+  if (week.poolEntries.some((e) => e.mealId === parsed.mealId)) {
+    throw new Error("Already in pool");
+  }
+  const meal = await prisma.meal.findFirst({
+    where: { id: parsed.mealId, userId: user.id },
+    include: { variants: true, mealSides: true },
+  });
+  if (!meal) throw new Error("Meal not found");
+  const variant = meal.variants.find((v) => v.isDefault) ?? meal.variants[0];
+  const defaultSides = meal.mealSides.filter((s) => s.defaultSelected);
+
+  await prisma.poolEntry.create({
+    data: {
+      weekId: week.id,
+      sortOrder: week.poolEntries.length,
+      mealId: meal.id,
+      variantId: variant?.id ?? null,
+      servings: 3,
+      sides: {
+        create: defaultSides.map((s) => ({ sideId: s.sideId })),
+      },
+    },
+  });
+  await rebuildWeek(week.id);
+  revalidateApp();
+}
+
+export async function removePoolEntry(entryId: string) {
+  const parsed = z.object({ entryId: z.string().cuid() }).parse({ entryId });
+  const user = await requireUser();
+  const entry = await prisma.poolEntry.findFirst({
+    where: { id: parsed.entryId, week: { userId: user.id } },
+  });
+  if (!entry) throw new Error("Not found");
+  await prisma.poolEntry.delete({ where: { id: entry.id } });
+  await rebuildWeek(entry.weekId);
+  revalidateApp();
+}
+
+export async function pinPoolEntry(entryId: string, dayId: string | null) {
+  const parsed = z
+    .object({
+      entryId: z.string().cuid(),
+      dayId: z.string().cuid().nullable(),
+    })
+    .parse({ entryId, dayId });
+  const user = await requireUser();
+  const entry = await prisma.poolEntry.findFirst({
+    where: { id: parsed.entryId, week: { userId: user.id } },
+    include: { sides: true, week: true },
+  });
+  if (!entry) throw new Error("Not found");
+
+  if (parsed.dayId) {
+    const day = await ownedDay(parsed.dayId, user.id);
+    if (day.weekId !== entry.weekId) throw new Error("Different weeks");
+    await prisma.$transaction(async (tx) => {
+      await tx.dayPlanSide.deleteMany({ where: { dayPlanId: day.id } });
+      await tx.dayPlan.update({
+        where: { id: day.id },
+        data: {
+          mealId: entry.mealId,
+          variantId: entry.variantId,
+          servings: entry.servings,
+          prepWindow: entry.prepWindow,
+          preparedDishId: entry.preparedDishId,
+          cookKind: entry.preparedDishId ? "HEAT_PREPARED" : "RECIPE",
+          cookedAt: null,
+          skippedAt: null,
+          leftoverOfDayId: null,
+          sides: {
+            create: entry.sides.map((s) => ({ sideId: s.sideId })),
+          },
+        },
+      });
+      await tx.poolEntry.update({
+        where: { id: entry.id },
+        data: { pinnedDayPlanId: day.id },
+      });
+    });
+  } else {
+    await prisma.poolEntry.update({
+      where: { id: entry.id },
+      data: { pinnedDayPlanId: null },
+    });
+  }
+
+  await rebuildWeek(entry.weekId);
+  revalidateApp();
+}
+
+export async function fillPoolSlots(weekId: string) {
+  const parsed = z.object({ weekId: z.string().cuid() }).parse({ weekId });
+  const user = await requireUser();
+  const week = await prisma.week.findFirst({
+    where: { id: parsed.weekId, userId: user.id },
+    include: {
+      poolEntries: true,
+      days: true,
+    },
+  });
+  if (!week) throw new Error("Week not found");
+
+  const meals = await prisma.meal.findMany({
+    where: { userId: user.id },
+    include: {
+      variants: { orderBy: { sortOrder: "asc" } },
+      mealSides: true,
+    },
+  });
+
+  const fillMeals: FillMeal[] = meals
+    .map((m) => {
+      const def = m.variants.find((v) => v.isDefault) ?? m.variants[0];
+      if (!def) return null;
+      return {
+        id: m.id,
+        name: m.name,
+        confidence: m.confidence,
+        method: m.method,
+        cuisine: m.cuisine,
+        activeMinutes: m.activeMinutes,
+        totalMinutes: m.totalMinutes,
+        defaultProteinGroup: def.proteinGroup,
+        defaultVariantId: def.id,
+        defaultSideIds: m.mealSides
+          .filter((s) => s.defaultSelected)
+          .map((s) => s.sideId),
+      };
+    })
+    .filter((m): m is FillMeal => m != null);
+
+  const usedIds = new Set(
+    week.poolEntries.map((e) => e.mealId).filter(Boolean) as string[],
+  );
+  const slotsNeeded = Math.max(0, week.poolTarget - week.poolEntries.length);
+  // Reuse fillEmptyDays against synthetic empty "days"
+  const syntheticDays = Array.from({ length: slotsNeeded }, (_, i) => ({
+    id: `slot-${i}`,
+    date: week.weekStart,
+    enabled: true,
+    mealId: null as string | null,
+    prepWindow: "EVENING_BEFORE",
+    servings: 3,
+  }));
+
+  const alreadyUsed = [...usedIds].map((id, i) => ({
+    id: `used-${i}`,
+    date: week.weekStart,
+    enabled: true,
+    mealId: id,
+    prepWindow: "EVENING_BEFORE",
+    servings: 3,
+  }));
+
+  const placements = fillEmptyDays(
+    [...alreadyUsed, ...syntheticDays],
+    fillMeals,
+  );
+
+  let sortOrder = week.poolEntries.length;
+  let filled = 0;
+  for (const placement of placements) {
+    if (!placement.dayId.startsWith("slot-")) continue;
+    const meal = meals.find((m) => m.id === placement.mealId);
+    if (!meal) continue;
+    const variant =
+      meal.variants.find((v) => v.isDefault) ?? meal.variants[0];
+    const defaultSides = meal.mealSides.filter((s) => s.defaultSelected);
+    await prisma.poolEntry.create({
+      data: {
+        weekId: week.id,
+        sortOrder: sortOrder++,
+        mealId: meal.id,
+        variantId: variant?.id ?? null,
+        servings: 3,
+        sides: {
+          create: defaultSides.map((s) => ({ sideId: s.sideId })),
+        },
+      },
+    });
+    filled += 1;
+  }
+
+  await rebuildWeek(week.id);
+  revalidateApp();
+  return { filled };
+}
+
+export async function logPoolCook(entryId: string, cookedDate: string) {
+  const parsed = z
+    .object({
+      entryId: z.string().cuid(),
+      cookedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    })
+    .parse({ entryId, cookedDate });
+  const user = await requireUser();
+  const entry = await prisma.poolEntry.findFirst({
+    where: { id: parsed.entryId, week: { userId: user.id } },
+  });
+  if (!entry) throw new Error("Not found");
+  const instance = await prisma.poolCookInstance.create({
+    data: {
+      userId: user.id,
+      poolEntryId: entry.id,
+      cookedDate: parsed.cookedDate,
+    },
+  });
+  revalidateApp();
+  return instance;
 }

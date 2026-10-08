@@ -16,6 +16,15 @@ export default async function CookPage({
     include: {
       week: true,
       variant: true,
+      preparedDish: {
+        include: {
+          linkedMeal: {
+            include: {
+              steps: { orderBy: { sortOrder: "asc" } },
+            },
+          },
+        },
+      },
       sides: { include: { side: { include: { ingredients: true } } } },
       meal: {
         include: {
@@ -29,6 +38,8 @@ export default async function CookPage({
   if (!day) notFound();
 
   const meal = day.meal;
+  const linked = day.preparedDish?.linkedMeal;
+  const keypointSource = meal ?? linked;
   const variantId =
     day.variantId ??
     meal?.variants.find((v) => v.isDefault)?.id ??
@@ -65,19 +76,25 @@ export default async function CookPage({
   const cupboardNames = new Set<string>();
   if (meal) {
     for (const i of meal.ingredients.filter(
-      (ing) => (!ing.variantId || ing.variantId === variantId) && ing.role === "PANTRY",
+      (ing) =>
+        (!ing.variantId || ing.variantId === variantId) &&
+        ing.role === "PANTRY",
     )) {
       cupboardNames.add(i.name);
     }
   }
   for (const link of day.sides) {
-    for (const i of link.side.ingredients.filter((ing) => ing.role === "PANTRY")) {
+    for (const i of link.side.ingredients.filter(
+      (ing) => ing.role === "PANTRY",
+    )) {
       cupboardNames.add(i.name);
     }
   }
 
   const keypoints =
-    meal?.steps.filter((s) => s.kind === "KEYPOINT").map((s) => s.body) ?? [];
+    keypointSource?.steps
+      .filter((s) => s.kind === "KEYPOINT")
+      .map((s) => s.body) ?? [];
   const steps =
     meal?.steps.filter((s) => s.kind === "STEP").map((s) => s.body) ?? [];
 
@@ -96,7 +113,15 @@ export default async function CookPage({
                 cookCount: meal.cookCount,
                 nudgeDismissedAtCookCount: meal.nudgeDismissedAtCookCount,
               }
-            : null
+            : linked
+              ? {
+                  id: linked.id,
+                  name: linked.name,
+                  confidence: linked.confidence,
+                  cookCount: linked.cookCount,
+                  nudgeDismissedAtCookCount: linked.nudgeDismissedAtCookCount,
+                }
+              : null
         }
         servings={day.servings}
         prepWindow={day.prepWindow}
@@ -106,6 +131,8 @@ export default async function CookPage({
         cupboard={[...cupboardNames]}
         keypoints={keypoints}
         steps={meal?.confidence === "RECIPE" ? steps : []}
+        cookKind={day.cookKind}
+        preparedDishName={day.preparedDish?.name ?? null}
       />
     </div>
   );
