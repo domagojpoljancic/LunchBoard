@@ -16,7 +16,8 @@ test("planning mode toggle switches By day ↔ Week’s meals (pool)", async ({
   const pool = group.getByRole("button", { name: "Week’s meals" });
 
   await expect(byDay).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByText("Monday").first()).toBeVisible();
+  await expect(page.locator("[data-drop-day]").first()).toBeVisible();
+  await expect(page.getByText("Mon").first()).toBeVisible();
 
   await pool.click();
   await expect(pool).toHaveAttribute("aria-pressed", "true", { timeout: 15000 });
@@ -24,11 +25,12 @@ test("planning mode toggle switches By day ↔ Week’s meals (pool)", async ({
     page.getByRole("heading", { name: "This week’s meals" }),
   ).toBeVisible({ timeout: 15000 });
   // Pool mode with daysView off hides weekday columns
-  await expect(page.getByText("Monday")).toHaveCount(0);
+  await expect(page.locator("[data-drop-day]")).toHaveCount(0);
 
   await byDay.click();
   await expect(byDay).toHaveAttribute("aria-pressed", "true", { timeout: 15000 });
-  await expect(page.getByText("Monday").first()).toBeVisible({
+  await expect(page.locator("[data-drop-day]").first()).toBeVisible({
     timeout: 15000,
   });
+  await expect(page.getByText("Mon").first()).toBeVisible();
 });

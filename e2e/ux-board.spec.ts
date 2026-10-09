@@ -16,12 +16,22 @@ test("planning mode toggle and day sheet modal", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "This week’s meals" })).toBeVisible({
     timeout: 15000,
   });
-  await expect(page.getByText("Monday").first()).toHaveCount(0);
+  await expect(page.locator("[data-drop-day]")).toHaveCount(0);
 
   await page.getByRole("button", { name: "By day", exact: true }).click();
-  await expect(page.getByText("Monday").first()).toBeVisible({ timeout: 15000 });
+  await expect(page.locator("[data-drop-day]").first()).toBeVisible({
+    timeout: 15000,
+  });
+  await expect(page.getByText("Mon").first()).toBeVisible();
 
   await placeFirst(page, "Bolognese");
+  // placeFirst closes the sheet — reopen from the day column
+  await page
+    .locator("section.sheet")
+    .filter({ hasText: "Bolognese" })
+    .first()
+    .getByRole("button", { name: /^Bolognese/ })
+    .click();
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible({ timeout: 15000 });
   await expect(dialog.getByRole("button", { name: "Close" })).toBeVisible();

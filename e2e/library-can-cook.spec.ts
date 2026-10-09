@@ -19,7 +19,7 @@ test("library shows Can cook shelf with meal cards", async ({ page }) => {
     .locator("section")
     .filter({ has: page.getByRole("heading", { name: "Can cook" }) });
   await expect(
-    canCookSection.getByRole("button", { name: /^Bolognese/ }),
+    canCookSection.getByRole("button", { name: "Bolognese", exact: true }),
   ).toBeVisible({ timeout: 15000 });
   await expect(
     canCookSection.locator('[data-testid="library-meal-card"]'),
