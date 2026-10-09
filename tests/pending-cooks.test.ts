@@ -164,4 +164,103 @@ describe("pending cook query", () => {
       "2026-10-08",
     );
   });
+
+  it("includes heat/prepared and leftover days that still have a target", () => {
+    expect(
+      isPendingCookDay(
+        {
+          id: "heat",
+          date: "2026-10-07",
+          enabled: true,
+          mealId: null,
+          preparedDishId: "prep",
+          cookedAt: null,
+          skippedAt: null,
+          leftoverOfDayId: null,
+        },
+        today,
+      ),
+    ).toBe(true);
+    expect(
+      isPendingCookDay(
+        {
+          id: "leftover",
+          date: "2026-10-07",
+          enabled: true,
+          mealId: "m",
+          preparedDishId: null,
+          cookedAt: null,
+          skippedAt: null,
+          leftoverOfDayId: "source",
+        },
+        today,
+      ),
+    ).toBe(true);
+  });
+
+  it("excludes skipped days even when meal is present", () => {
+    expect(
+      isPendingCookDay(
+        {
+          id: "skipped",
+          date: "2026-10-07",
+          enabled: true,
+          mealId: "m",
+          preparedDishId: null,
+          cookedAt: null,
+          skippedAt: new Date(),
+          leftoverOfDayId: null,
+        },
+        today,
+      ),
+    ).toBe(false);
+  });
+
+  it("includes today-boundary as not pending (date >= today)", () => {
+    expect(
+      isPendingCookDay(
+        {
+          id: "today",
+          date: today,
+          enabled: true,
+          mealId: "m",
+          preparedDishId: null,
+          cookedAt: null,
+          skippedAt: null,
+          leftoverOfDayId: null,
+        },
+        today,
+      ),
+    ).toBe(false);
+  });
+
+  it("falls back to UTC for an invalid timezone string", () => {
+    expect(
+      todayInTimezone(new Date("2026-10-08T05:00:00Z"), "Not/AZone"),
+    ).toBe("2026-10-08");
+  });
+
+  it("hides prompt when there are no pending cooks", () => {
+    expect(
+      shouldShowCookPrompt({
+        pendingCount: 0,
+        lastPromptAt: null,
+        now: new Date(),
+        sessionDismissed: false,
+        isFreshLogin: true,
+      }),
+    ).toBe(false);
+  });
+
+  it("shows prompt when never prompted before", () => {
+    expect(
+      shouldShowCookPrompt({
+        pendingCount: 2,
+        lastPromptAt: null,
+        now: new Date("2026-10-08T18:00:00Z"),
+        sessionDismissed: false,
+        isFreshLogin: false,
+      }),
+    ).toBe(true);
+  });
 });

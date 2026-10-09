@@ -119,4 +119,119 @@ describe("Mode B soft net", () => {
     expect(applied.forceVisible).toBe(true);
     expect(shouldHideSoftNettedLine(applied)).toBe(false);
   });
+
+  it("CARRIED view-only still reports covered without applying", () => {
+    const view = softNetAgainstInventory(
+      {
+        name: "pasta",
+        nameKey: "pasta",
+        quantity: 450,
+        unit: "G",
+        origin: "CARRIED",
+      },
+      stock,
+    );
+    expect(view.covered).toBe(true);
+    expect(view.quantity).toBe(450);
+    expect(view.forceVisible).toBe(true);
+    expect(view.applied).toBe(false);
+    expect(shouldHideSoftNettedLine(view)).toBe(false);
+  });
+
+  it("sums multi-location stock for Mode A and Mode B", () => {
+    const multi: InventoryStockRow[] = [
+      {
+        id: "a",
+        nameKey: "onion",
+        unit: "PIECE",
+        location: "FRIDGE",
+        quantity: 2,
+      },
+      {
+        id: "b",
+        nameKey: "onion",
+        unit: "PIECE",
+        location: "PANTRY",
+        quantity: 3,
+      },
+    ];
+    const advice = adviseStock(
+      {
+        name: "onion",
+        nameKey: "onion",
+        quantity: 4,
+        unit: "PIECE",
+        origin: "PLAN",
+      },
+      multi,
+    );
+    expect(advice.kind).toBe("HAVE");
+    if (advice.kind === "HAVE") expect(advice.have).toBe(5);
+
+    const applied = softNetAgainstInventory(
+      {
+        name: "onion",
+        nameKey: "onion",
+        quantity: 4,
+        unit: "PIECE",
+        origin: "PLAN",
+      },
+      multi,
+      { apply: true },
+    );
+    expect(applied.covered).toBe(true);
+    expect(applied.quantity).toBe(0);
+  });
+
+  it("returns NONE when name is absent from inventory", () => {
+    expect(
+      adviseStock(
+        {
+          name: "garlic",
+          nameKey: "garlic",
+          quantity: 1,
+          unit: "PIECE",
+          origin: "PLAN",
+        },
+        stock,
+      ).kind,
+    ).toBe("NONE");
+  });
+
+  it("null buy quantity is never soft-netted", () => {
+    const result = softNetAgainstInventory(
+      {
+        name: "salt",
+        nameKey: "salt",
+        quantity: null,
+        unit: "G",
+        origin: "PLAN",
+      },
+      stock,
+      { apply: true },
+    );
+    expect(result).toEqual({
+      quantity: null,
+      covered: false,
+      forceVisible: false,
+      applied: false,
+    });
+  });
+
+  it("CARRIED forceVisible survives DIFFERENT_UNIT advice", () => {
+    const result = softNetAgainstInventory(
+      {
+        name: "pasta",
+        nameKey: "pasta",
+        quantity: 2,
+        unit: "PIECE",
+        origin: "CARRIED",
+      },
+      stock,
+      { apply: true },
+    );
+    expect(result.forceVisible).toBe(true);
+    expect(result.covered).toBe(false);
+    expect(shouldHideSoftNettedLine(result)).toBe(false);
+  });
 });

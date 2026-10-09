@@ -3,6 +3,7 @@ import {
   collectPoolLines,
   convertByDayToPool,
   dayShouldCollectRecipe,
+  mergeDayAndPoolDesired,
   normalizePoolTarget,
 } from "@/lib/pool";
 
@@ -157,5 +158,84 @@ describe("pool helpers", () => {
         leftoverOfDayId: "other",
       }),
     ).toBe(false);
+  });
+
+  it("dayShouldCollectRecipe rejects disabled days and LEFTOVER cookKind", () => {
+    expect(
+      dayShouldCollectRecipe({
+        enabled: false,
+        mealId: "m",
+        leftoverOfDayId: null,
+        cookKind: "RECIPE",
+      }),
+    ).toBe(false);
+    expect(
+      dayShouldCollectRecipe({
+        enabled: true,
+        mealId: "m",
+        leftoverOfDayId: null,
+        cookKind: "LEFTOVER",
+      }),
+    ).toBe(false);
+    expect(
+      dayShouldCollectRecipe({
+        enabled: true,
+        mealId: null,
+        leftoverOfDayId: null,
+        cookKind: "RECIPE",
+      }),
+    ).toBe(false);
+  });
+
+  it("mergeDayAndPoolDesired merges duplicate nameKey+unit lines", () => {
+    const merged = mergeDayAndPoolDesired(
+      [
+        {
+          name: "onion",
+          nameKey: "onion",
+          quantity: 1,
+          unit: "PIECE",
+          role: "BUY",
+        },
+      ],
+      [
+        {
+          name: "onion",
+          nameKey: "onion",
+          quantity: 2,
+          unit: "PIECE",
+          role: "BUY",
+        },
+      ],
+    );
+    expect(merged).toHaveLength(1);
+    expect(merged[0].quantity).toBe(3);
+  });
+
+  it("collectPoolLines skips entries with no mealId even without preparedDish", () => {
+    expect(
+      collectPoolLines([
+        {
+          id: "empty",
+          servings: 3,
+          mealId: null,
+          preparedDishId: null,
+          pinnedDayPlanId: null,
+          baseServings: 3,
+          selectedVariantId: null,
+          defaultVariantId: null,
+          shared: [
+            {
+              name: "onion",
+              quantity: 1,
+              unit: "PIECE",
+              role: "BUY",
+            },
+          ],
+          variantIngredients: [],
+          sideIngredients: [],
+        },
+      ]),
+    ).toEqual([]);
   });
 });

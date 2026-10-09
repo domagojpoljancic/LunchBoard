@@ -1,8 +1,9 @@
 # LunchBoard
 
 > **WIP — working name.** Stock & reality (home inventory, cook confirmation, planning modes,
-> prepared dishes) is in progress on this branch. The core week board, lists, library, and cook
-> path still work. Cupboard checklist stays week-scoped; inventory is a separate At home ledger.
+> prepared dishes) and the board UX pass (By day / Week’s meals, modal day sheet, equal library
+> cards, confidence toggle without Save-meal flash) ship on this branch. Cupboard checklist stays
+> week-scoped; inventory is a separate At home ledger.
 >
 > Still open: meal editor sides/steps polish, hosted preview (Postgres secrets), `next@16` for the
 > last build-time `postcss` advisories, and remaining boxes in

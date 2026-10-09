@@ -8,7 +8,11 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { addIngredient } from "@/app/actions/meals";
-import { setDaySides, updateDayVariant } from "@/app/actions/week";
+import {
+  setDaySides,
+  setWeekPlanningSettings,
+  updateDayVariant,
+} from "@/app/actions/week";
 
 type Session = { user: { id: string; email: string } } | null;
 
@@ -27,6 +31,8 @@ describe("ownership checks (two users)", () => {
   let sideId: string;
   let attackerSideId: string;
   let dayId: string;
+  let weekId: string;
+  let attackerWeekId: string;
 
   beforeAll(async () => {
     const owner = await prisma.user.create({
@@ -82,6 +88,7 @@ describe("ownership checks (two users)", () => {
     const week = await prisma.week.create({
       data: { userId: ownerId, weekStart: "2026-01-05" },
     });
+    weekId = week.id;
     const day = await prisma.dayPlan.create({
       data: {
         weekId: week.id,
@@ -91,6 +98,11 @@ describe("ownership checks (two users)", () => {
       },
     });
     dayId = day.id;
+
+    const attackerWeek = await prisma.week.create({
+      data: { userId: attackerId, weekStart: "2026-01-05" },
+    });
+    attackerWeekId = attackerWeek.id;
   });
 
   afterAll(async () => {
@@ -156,5 +168,57 @@ describe("ownership checks (two users)", () => {
     await expect(
       addIngredient({ mealId, name: "owner ingredient", role: "BUY" }),
     ).resolves.not.toThrow();
+  });
+
+  it("stops another user from changing week planning settings", async () => {
+    mockedAuth.mockResolvedValue(sessionFor(attackerId, "attacker") as never);
+    await expect(
+      setWeekPlanningSettings({
+        weekId,
+        planningMode: "POOL",
+        daysView: false,
+        poolTarget: 5,
+      }),
+    ).rejects.toThrow(/Week not found/);
+  });
+
+  it("allows the owner to switch planning mode and persist defaults", async () => {
+    mockedAuth.mockResolvedValue(sessionFor(ownerId, "owner") as never);
+    await expect(
+      setWeekPlanningSettings({
+        weekId,
+        planningMode: "POOL",
+        daysView: false,
+        poolTarget: 7,
+        useAsDefault: true,
+      }),
+    ).resolves.not.toThrow();
+
+    const week = await prisma.week.findUniqueOrThrow({ where: { id: weekId } });
+    expect(week.planningMode).toBe("POOL");
+    expect(week.daysView).toBe(false);
+    expect(week.poolTarget).toBe(7);
+
+    const owner = await prisma.user.findUniqueOrThrow({ where: { id: ownerId } });
+    expect(owner.defaultPlanningMode).toBe("POOL");
+    expect(owner.defaultPoolTarget).toBe(7);
+  });
+
+  it("does not let an attacker retarget the owner's week via their own weekId", async () => {
+    mockedAuth.mockResolvedValue(sessionFor(attackerId, "attacker") as never);
+    await expect(
+      setWeekPlanningSettings({
+        weekId: attackerWeekId,
+        planningMode: "BY_DAY",
+        daysView: true,
+      }),
+    ).resolves.not.toThrow();
+
+    const ownerWeek = await prisma.week.findUniqueOrThrow({
+      where: { id: weekId },
+    });
+    // Owner's week must remain POOL from the previous test
+    expect(ownerWeek.planningMode).toBe("POOL");
+    expect(ownerWeek.userId).toBe(ownerId);
   });
 });
