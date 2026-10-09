@@ -78,7 +78,7 @@ and `npx prisma db seed` on its own will top up the starter meals without touchi
 ## Tests
 
 ```bash
-npm test        # 122 unit and DB tests against prisma/test.db
+npm test        # 124 unit and DB tests against prisma/test.db
 npm run build
 npm run e2e     # Playwright, production build on port 3100, wipes prisma/e2e.db
 ```

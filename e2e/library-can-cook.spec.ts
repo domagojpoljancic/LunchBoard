@@ -9,16 +9,19 @@ test("library shows Can cook shelf with meal cards", async ({ page }) => {
   const aside = page.locator("aside").first();
   await expect(aside.getByRole("heading", { name: "Can cook" })).toBeVisible();
 
-  // Seeded KNOW/PROMPT meals land on Can cook
+  // Seed meals default to RECIPE — mark one known so Can cook gets a card
+  await aside
+    .getByRole("button", { name: "Mark Bolognese as known" })
+    .first()
+    .click();
+
   const canCookSection = aside
     .locator("section")
     .filter({ has: page.getByRole("heading", { name: "Can cook" }) });
-  await expect(canCookSection.getByRole("button").first()).toBeVisible({
-    timeout: 10000,
-  });
-
-  // At least one recognizable seed meal should appear in the library
   await expect(
-    aside.getByRole("button", { name: /Bolognese|Chili|Lasagne/ }).first(),
-  ).toBeVisible();
+    canCookSection.getByRole("button", { name: /^Bolognese/ }),
+  ).toBeVisible({ timeout: 15000 });
+  await expect(
+    canCookSection.locator('[data-testid="library-meal-card"]'),
+  ).toHaveCount(1, { timeout: 15000 });
 });

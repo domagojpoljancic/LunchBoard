@@ -395,3 +395,131 @@ describe("skip cook paths", () => {
     expect(confirmation?.status).toBe("SKIPPED");
   });
 });
+
+describe("pool cook confirm decrements inventory once", () => {
+  let userId: string;
+  let poolCookId: string;
+  let pastaId: string;
+  let mealId: string;
+
+  beforeAll(async () => {
+    const user = await prisma.user.create({
+      data: {
+        email: `pool-cook-${Date.now()}@test.local`,
+        passwordHash: "x",
+      },
+    });
+    userId = user.id;
+    mockedAuth.mockResolvedValue({
+      user: { id: userId, email: user.email },
+    } as never);
+
+    const meal = await prisma.meal.create({
+      data: {
+        userId,
+        name: "Pool pasta",
+        baseServings: 3,
+        ingredients: {
+          create: [
+            {
+              name: "pasta",
+              quantity: 300,
+              unit: "G",
+              role: "BUY",
+              sortOrder: 0,
+            },
+          ],
+        },
+      },
+    });
+    mealId = meal.id;
+
+    const pasta = await prisma.inventoryItem.create({
+      data: {
+        userId,
+        name: "pasta",
+        nameKey: nameKey("pasta"),
+        location: "PANTRY",
+        quantity: 600,
+        unit: "G",
+      },
+    });
+    pastaId = pasta.id;
+
+    const week = await prisma.week.create({
+      data: {
+        userId,
+        weekStart: "2026-03-30",
+        planningMode: "POOL",
+        daysView: false,
+      },
+    });
+    const entry = await prisma.poolEntry.create({
+      data: {
+        weekId: week.id,
+        mealId,
+        servings: 3,
+        sortOrder: 0,
+      },
+    });
+    const instance = await prisma.poolCookInstance.create({
+      data: {
+        userId,
+        poolEntryId: entry.id,
+        cookedDate: "2026-03-30",
+      },
+    });
+    poolCookId = instance.id;
+  });
+
+  afterAll(async () => {
+    await prisma.user.delete({ where: { id: userId } }).catch(() => {});
+  });
+
+  it("is idempotent and decrements pasta once", async () => {
+    const first = await confirmCook(userId, {
+      kind: "poolCook",
+      poolCookId,
+    });
+    const second = await confirmCook(userId, {
+      kind: "poolCook",
+      poolCookId,
+    });
+    expect(first.status).toBe("COOKED");
+    expect(second.status).toBe("ALREADY");
+
+    const pasta = await prisma.inventoryItem.findUniqueOrThrow({
+      where: { id: pastaId },
+    });
+    const meal = await prisma.meal.findUniqueOrThrow({ where: { id: mealId } });
+    expect(pasta.quantity).toBe(300);
+    expect(meal.cookCount).toBe(1);
+  });
+
+  it("skip on a fresh pool cook is idempotent", async () => {
+    const week = await prisma.week.create({
+      data: { userId, weekStart: "2026-04-06", planningMode: "POOL" },
+    });
+    const entry = await prisma.poolEntry.create({
+      data: { weekId: week.id, mealId, servings: 3, sortOrder: 0 },
+    });
+    const instance = await prisma.poolCookInstance.create({
+      data: {
+        userId,
+        poolEntryId: entry.id,
+        cookedDate: "2026-04-06",
+      },
+    });
+
+    const first = await skipCook(userId, {
+      kind: "poolCook",
+      poolCookId: instance.id,
+    });
+    const second = await skipCook(userId, {
+      kind: "poolCook",
+      poolCookId: instance.id,
+    });
+    expect(first.status).toBe("SKIPPED");
+    expect(second.status).toBe("ALREADY");
+  });
+});
