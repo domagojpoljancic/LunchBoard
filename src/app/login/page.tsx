@@ -29,7 +29,7 @@ export default async function LoginPage({
               await signIn("credentials", {
                 email: String(formData.get("email") || "").toLowerCase(),
                 password: String(formData.get("password") || ""),
-                redirectTo: "/week",
+                redirectTo: "/week?login=1",
               });
             } catch (error) {
               if (error instanceof AuthError) {

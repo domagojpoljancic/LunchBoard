@@ -23,6 +23,10 @@ export type DayView = {
   servings: number;
   prepWindow: string;
   cookedAt?: string | null;
+  skippedAt?: string | null;
+  cookKind?: string | null;
+  preparedDishId?: string | null;
+  preparedDishName?: string | null;
   fillReason?: string | null;
   leftoverOfDayId?: string | null;
   meal: null | {
@@ -110,26 +114,34 @@ export function DayColumn({
         </button>
       </div>
 
-      {day.meal ? (
+      {day.meal || day.preparedDishId ? (
         <div className={`space-y-2 ${day.leftoverOfDayId ? "opacity-70" : ""}`}>
           <MealTicket
             meal={{
-              id: day.meal.id,
-              name: day.meal.name,
-              confidence: day.meal.confidence,
-              activeMinutes: day.meal.activeMinutes,
-              proteinGroup: day.meal.proteinGroup,
-              variantLabel: day.meal.variantLabel,
-              hasMultipleVariants: day.meal.variants.length > 1,
+              id: day.meal?.id ?? day.preparedDishId ?? day.id,
+              name:
+                day.cookKind === "HEAT_PREPARED" || day.preparedDishId
+                  ? day.preparedDishName ?? day.meal?.name ?? "Ready to heat"
+                  : day.meal!.name,
+              confidence: day.meal?.confidence ?? "KNOW",
+              activeMinutes: day.meal?.activeMinutes ?? null,
+              proteinGroup: day.meal?.proteinGroup ?? "OTHER",
+              variantLabel:
+                day.cookKind === "HEAT_PREPARED" || day.preparedDishId
+                  ? "Ready to heat"
+                  : day.meal?.variantLabel,
+              hasMultipleVariants: (day.meal?.variants.length ?? 0) > 1,
             }}
-            draggable={!day.leftoverOfDayId}
-            dragFromDayId={day.leftoverOfDayId ? undefined : day.id}
+            draggable={!day.leftoverOfDayId && !day.preparedDishId}
+            dragFromDayId={
+              day.leftoverOfDayId || day.preparedDishId ? undefined : day.id
+            }
             onSelect={() => {
               if (beforeSelect?.()) return;
               onFilledClick();
             }}
             onCycleVariant={
-              day.leftoverOfDayId
+              day.leftoverOfDayId || day.preparedDishId || !day.meal
                 ? undefined
                 : () => {
                     const variants = day.meal!.variants;
@@ -147,6 +159,15 @@ export function DayColumn({
                   <div className="text-[12px] font-semibold text-[var(--muted)]">
                     Leftovers
                   </div>
+                ) : day.preparedDishId || day.cookKind === "HEAT_PREPARED" ? (
+                  <>
+                    <div className="text-[12px] font-semibold text-[var(--muted)]">
+                      Ready to heat
+                    </div>
+                    <div className="text-[12px] font-medium text-[var(--muted)]">
+                      {day.servings} portion{day.servings === 1 ? "" : "s"}
+                    </div>
+                  </>
                 ) : (
                   <>
                     <div className="text-[12px] font-medium text-[var(--muted)]">
@@ -174,7 +195,11 @@ export function DayColumn({
                       className="btn-text px-0 text-sm"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      {day.cookedAt ? "Cooked" : "Cook"}
+                      {day.cookedAt
+                        ? "Cooked"
+                        : day.preparedDishId
+                          ? "Heat"
+                          : "Cook"}
                     </Link>
                   ) : (
                     <span />

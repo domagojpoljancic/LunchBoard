@@ -78,25 +78,41 @@ Route: `/list/[weekStart]`.
 
 Two groups: plan lines that are origin `PLAN`, then origin `CARRIED` under the Still to buy label. Hide the carried label when there are none.
 
-Checking a row sets `checked`. It does not rebuild.
+Checking a row sets `checked`. It does not rebuild. When inventory matches `nameKey+unit`, show an advisory under the line. Optional “Add to inventory?” after a buy check (opt-in; remember preference). **Apply stock to list** is Mode B view-only until tapped; carried lines stay visible.
 
 The top bar still has the week switcher. Changing week shows that week’s list.
+
+## At home
+
+Route: `/home`.
+
+Tabs: Inventory (grouped by location) and Prepared (free-text names, portions, location). Paper sheet language — not a warehouse table. Nav from the board: **At home**.
+
+## Cook confirmation sheet
+
+On week landing after login or return ≥6h, if past enabled meal days are unconfirmed: sheet with **Cooked** · **Skipped** · **Later**. Later never hard-blocks the app.
+
+## Week planning control
+
+Primary segmented control on the board: **By day** (weekday columns) or **Week’s meals** (day-independent lunch shortlist). Optional **Show weekend** when by day. Day details open in a modal dialog over the board — never a left column.
 
 ## Cook
 
 Route: `/cook/[dayId]`.
 
-If the day has no meal, show the empty-well sentence and a link back to the board.
+If the day has no meal and is not a heat plan, show the empty-well sentence and a link back to the board.
 
 Render steps by confidence, as in the visual spec. Keypoints are `kind: KEYPOINT`, ordered. Steps are `kind: STEP`, ordered.
 
-**I cooked this** increments `cookCount` by 1 and then evaluates the nudge.
+Heat plans show “Heat and serve” and **I heated this**.
+
+**I cooked this** / **I heated this** run `confirmCook` (inventory or portions) and then evaluate the nudge for recipe cooks.
 
 The nudge’s Yes and Not now behave as in the data doc.
 
 ## Login
 
-Email and password. Failed sign-in: “That email or password does not match.” Success goes to `/week`.
+Email and password. Failed sign-in: “That email or password does not match.” Success goes to `/week?login=1` so the confirmation sheet can run.
 
 ## Loading and errors
 

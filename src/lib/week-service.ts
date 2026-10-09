@@ -19,16 +19,31 @@ export async function ensureWeek(userId: string, weekStart: string) {
     throw new Error("Week start must be a YYYY-MM-DD date");
   }
 
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { id: userId },
+    select: {
+      defaultPlanningMode: true,
+      defaultDaysView: true,
+      defaultWeekendExpanded: true,
+      defaultPoolTarget: true,
+    },
+  });
+
+  const weekendExpanded = user.defaultWeekendExpanded;
   let week;
   try {
     week = await prisma.week.create({
       data: {
         userId,
         weekStart,
+        planningMode: user.defaultPlanningMode || "BY_DAY",
+        daysView: user.defaultDaysView ?? true,
+        weekendExpanded,
+        poolTarget: user.defaultPoolTarget ?? 5,
         days: {
           create: dates.map((date, index) => ({
             date,
-            enabled: index < 5,
+            enabled: weekendExpanded ? true : index < 5,
             servings: 3,
             prepWindow: "EVENING_BEFORE",
           })),

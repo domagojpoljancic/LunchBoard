@@ -25,7 +25,8 @@ export function MealBasicsForm({
     completePlate: boolean;
   };
 }) {
-  const [pending, start] = useTransition();
+  const [savingBasics, startBasics] = useTransition();
+  const [savingConfidence, startConfidence] = useTransition();
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confidence, setLocalConfidence] = useState(meal.confidence);
@@ -62,7 +63,7 @@ export function MealBasicsForm({
           return;
         }
         setError(null);
-        start(async () => {
+        startBasics(async () => {
           setSaved(false);
           await updateMealBasics(meal.id, parsed.data);
           setSaved(true);
@@ -92,12 +93,11 @@ export function MealBasicsForm({
                 className={`min-h-11 px-3 text-sm font-semibold ${
                   active ? "seg-active" : "seg-idle"
                 }`}
-                disabled={pending}
+                disabled={savingConfidence}
                 onClick={() => {
                   setLocalConfidence(value);
-                  start(async () => {
+                  startConfidence(async () => {
                     await setConfidence(meal.id, value);
-                    setSaved(true);
                   });
                 }}
               >
@@ -138,11 +138,7 @@ export function MealBasicsForm({
       </div>
       <label>
         <span className="section-label">Method</span>
-        <select
-          name="method"
-          defaultValue={meal.method}
-          className="field"
-        >
+        <select name="method" defaultValue={meal.method} className="field">
           {METHODS.map((m) => (
             <option key={m} value={m}>
               {methodLabel(m)}
@@ -172,10 +168,15 @@ export function MealBasicsForm({
         </p>
       ) : null}
       <div className="flex items-center gap-3">
-        <button type="submit" className="btn-primary" disabled={pending}>
-          {pending ? "Saving…" : "Save meal"}
+        <button
+          type="submit"
+          className="btn-primary"
+          disabled={savingBasics}
+          data-testid="save-meal"
+        >
+          {savingBasics ? "Saving…" : "Save meal"}
         </button>
-        {saved && !pending ? (
+        {saved && !savingBasics ? (
           <span className="text-sm text-[var(--muted)]">Saved</span>
         ) : null}
       </div>

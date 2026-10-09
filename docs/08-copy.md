@@ -12,8 +12,10 @@ Use these words. The voice is a calm cook standing next to the board: short, spe
 | Fill | Fill empty days |
 | Meals (mobile) | The shelf is on every width. There is no separate Meals button. |
 | Drag hint | Drag a meal onto a day, or select it and click the day. |
-| Zoom | Zoom |
-| Fit week | Fit week |
+| Pool hint | Select a meal, then add it to this week’s list below. |
+| Plan by day | By day |
+| Plan week meals | Week’s meals |
+| Show weekend | Show weekend |
 | Previous week | Previous |
 | Next week | Next |
 | Sign in | Sign in |
@@ -80,6 +82,52 @@ Protein names in the diversity line: beef, white meat, fish, vegetarian, vegan, 
 | Unit bunch | bunch |
 | Copy list | Copy list |
 | Copy list, copied | Copied |
+| Stock advisory | You already have ~{amount} |
+| Different unit | You have this under a different unit |
+| Apply stock | Apply stock to list |
+| Add purchase prompt | Add {name} to pantry inventory? |
+| Add purchase yes | Add |
+| Add purchase no | Not now |
+| Remember preference | Remember this choice |
+
+## At home
+
+| Element | Text |
+| --- | --- |
+| Nav | At home |
+| Title | At home |
+| Intro | Stock you keep across weeks, and dishes already cooked and ready to heat. |
+| Inventory tab | Inventory |
+| Prepared tab | Prepared |
+| Add staple | Add staple |
+| Empty inventory | Nothing logged yet. Add pasta, rice, or freezer protein when you have it. |
+| Add prepared | Add prepared dish |
+| Prepared hint | Name it however you like. No categories. |
+| Empty prepared | No ready dishes yet. Log a batch after you cook. |
+| Ate one | Ate one |
+| Running low | running low |
+| Ready to heat | Ready to heat |
+
+## Confirmation
+
+| Element | Text |
+| --- | --- |
+| Queue title | Confirm last week’s lunches ({n}) |
+| Cook prompt | Did you cook {meal} on {weekday}? |
+| Heat prompt | Did you heat {name} on {weekday}? |
+| Cooked | Cooked |
+| Skipped | Skipped |
+| Later | Later |
+
+## Week planning
+
+| Element | Text |
+| --- | --- |
+| By day help | Assign a lunch to each weekday. |
+| Week meals help | Pick lunches for the week — no day assignment required. |
+| Add to week | Add {name} to this week |
+| Pool empty | No meals yet. Add a few you might cook this week. |
+| Fill pool | Fill week’s meals |
 
 ## Cook
 
@@ -88,6 +136,9 @@ Protein names in the diversity line: beef, white meat, fish, vegetarian, vegan, 
 | Know | You know this one. |
 | Prompt | A few cues. |
 | Cooked | I cooked this |
+| Heated | I heated this |
+| Heat and serve | Heat and serve |
+| Warm through | Warm it through and eat. |
 | Cooked, undo | Cooked · Undo |
 | Nudge to prompt | You have cooked this {n} times. Move it to roughly know? |
 | Nudge to know | You have cooked this {n} times. Mark it as a meal you know? |

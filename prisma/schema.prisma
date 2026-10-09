@@ -8,15 +8,26 @@ datasource db {
 }
 
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  passwordHash String
-  timezone     String    @default("UTC")
-  onboardedAt  DateTime?
-  createdAt    DateTime  @default(now())
-  meals        Meal[]
-  sides        Side[]
-  weeks        Week[]
+  id                       String              @id @default(cuid())
+  email                    String              @unique
+  passwordHash             String
+  timezone                 String              @default("UTC")
+  onboardedAt              DateTime?
+  lastCookPromptAt         DateTime?
+  defaultPlanningMode      String              @default("BY_DAY")
+  defaultDaysView          Boolean             @default(true)
+  defaultWeekendExpanded   Boolean             @default(false)
+  defaultPoolTarget        Int                 @default(5)
+  addPurchaseToInventory   Boolean?
+  createdAt                DateTime            @default(now())
+  meals                    Meal[]
+  sides                    Side[]
+  weeks                    Week[]
+  inventoryItems           InventoryItem[]
+  inventoryMutations       InventoryMutation[]
+  preparedDishes           PreparedDish[]
+  cookConfirmations        CookConfirmation[]
+  poolCookInstances        PoolCookInstance[]
 }
 
 model Meal {
@@ -41,6 +52,8 @@ model Meal {
   steps                     Step[]
   mealSides                 MealSide[]
   dayPlans                  DayPlan[]
+  poolEntries               PoolEntry[]
+  linkedPrepared            PreparedDish[]
 
   @@unique([userId, catalogKey])
 }
@@ -55,6 +68,7 @@ model ProteinVariant {
   sortOrder    Int          @default(0)
   ingredients  Ingredient[]
   dayPlans     DayPlan[]
+  poolEntries  PoolEntry[]
 }
 
 model Ingredient {
@@ -73,15 +87,16 @@ model Ingredient {
 }
 
 model Side {
-  id            String        @id @default(cuid())
-  userId        String
-  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  catalogKey    String?
-  name          String
-  activeMinutes Int?
-  ingredients   Ingredient[]
-  mealSides     MealSide[]
-  dayPlanSides  DayPlanSide[]
+  id             String          @id @default(cuid())
+  userId         String
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  catalogKey     String?
+  name           String
+  activeMinutes  Int?
+  ingredients    Ingredient[]
+  mealSides      MealSide[]
+  dayPlanSides   DayPlanSide[]
+  poolEntrySides PoolEntrySide[]
 
   @@unique([userId, catalogKey])
 }
@@ -102,31 +117,42 @@ model Week {
   user                    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   weekStart               String
   diversityNudgeDismissed Boolean        @default(false)
+  planningMode            String         @default("BY_DAY")
+  daysView                Boolean        @default(true)
+  weekendExpanded         Boolean        @default(false)
+  poolTarget              Int            @default(5)
   days                    DayPlan[]
   shoppingItems           ShoppingItem[]
   pantryItems             PantryItem[]
+  poolEntries             PoolEntry[]
 
   @@unique([userId, weekStart])
 }
 
 model DayPlan {
-  id               String          @id @default(cuid())
+  id               String           @id @default(cuid())
   weekId           String
-  week             Week            @relation(fields: [weekId], references: [id], onDelete: Cascade)
+  week             Week             @relation(fields: [weekId], references: [id], onDelete: Cascade)
   date             String
-  enabled          Boolean         @default(true)
+  enabled          Boolean          @default(true)
   mealId           String?
-  meal             Meal?           @relation(fields: [mealId], references: [id], onDelete: SetNull)
+  meal             Meal?            @relation(fields: [mealId], references: [id], onDelete: SetNull)
   variantId        String?
-  variant          ProteinVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
-  servings         Int             @default(3)
-  prepWindow       String          @default("EVENING_BEFORE")
+  variant          ProteinVariant?  @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  servings         Int              @default(3)
+  prepWindow       String           @default("EVENING_BEFORE")
   cookedAt         DateTime?
+  skippedAt        DateTime?
+  cookKind         String           @default("RECIPE")
+  preparedDishId   String?
+  preparedDish     PreparedDish?    @relation(fields: [preparedDishId], references: [id], onDelete: SetNull)
   fillReason       String?
   leftoverOfDayId  String?
-  leftoverOf       DayPlan?        @relation("Leftovers", fields: [leftoverOfDayId], references: [id], onDelete: SetNull)
-  leftoverDays     DayPlan[]       @relation("Leftovers")
+  leftoverOf       DayPlan?         @relation("Leftovers", fields: [leftoverOfDayId], references: [id], onDelete: SetNull)
+  leftoverDays     DayPlan[]        @relation("Leftovers")
   sides            DayPlanSide[]
+  cookConfirmation CookConfirmation?
+  pinnedPoolEntry  PoolEntry?
 
   @@unique([weekId, date])
 }
@@ -169,4 +195,132 @@ model Step {
   kind      String
   body      String
   sortOrder Int    @default(0)
+}
+
+model InventoryItem {
+  id         String              @id @default(cuid())
+  userId     String
+  user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  nameKey    String
+  location   String
+  quantity   Float?
+  unit       String              @default("")
+  roleHint   String?
+  notes      String?
+  warnBelow  Float?
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+  mutations  InventoryMutation[]
+
+  @@unique([userId, nameKey, unit, location])
+  @@index([userId, location])
+}
+
+model InventoryMutation {
+  id                 String        @id @default(cuid())
+  userId             String
+  user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  inventoryItemId    String
+  inventoryItem      InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  delta              Float
+  reason             String
+  cookConfirmationId String?
+  cookConfirmation   CookConfirmation? @relation(fields: [cookConfirmationId], references: [id], onDelete: SetNull)
+  shoppingItemId     String?
+  shortfall          Float?
+  createdAt          DateTime      @default(now())
+  reversibleUntil    DateTime?
+  reversedAt         DateTime?
+
+  @@index([cookConfirmationId])
+  @@index([inventoryItemId, createdAt])
+}
+
+model CookConfirmation {
+  id           String              @id @default(cuid())
+  userId       String
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dayPlanId    String?             @unique
+  dayPlan      DayPlan?            @relation(fields: [dayPlanId], references: [id], onDelete: Cascade)
+  poolCookId   String?             @unique
+  poolCook     PoolCookInstance?   @relation(fields: [poolCookId], references: [id], onDelete: Cascade)
+  status       String
+  confirmedAt  DateTime            @default(now())
+  undoneAt     DateTime?
+  mutations    InventoryMutation[]
+}
+
+model PreparedDish {
+  id                String             @id @default(cuid())
+  userId            String
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name              String
+  nameKey           String
+  portionsRemaining Int
+  location          String
+  linkedMealId      String?
+  linkedMeal        Meal?              @relation(fields: [linkedMealId], references: [id], onDelete: SetNull)
+  madeOn            String?
+  eatBy             String?
+  notes             String?
+  archivedAt        DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  dayPlans          DayPlan[]
+  poolEntries       PoolEntry[]
+  portionMutations  PreparedMutation[]
+}
+
+model PreparedMutation {
+  id                 String       @id @default(cuid())
+  preparedDishId     String
+  preparedDish       PreparedDish @relation(fields: [preparedDishId], references: [id], onDelete: Cascade)
+  delta              Int
+  reason             String
+  cookConfirmationId String?
+  createdAt          DateTime     @default(now())
+  reversibleUntil    DateTime?
+  reversedAt         DateTime?
+}
+
+model PoolEntry {
+  id              String          @id @default(cuid())
+  weekId          String
+  week            Week            @relation(fields: [weekId], references: [id], onDelete: Cascade)
+  sortOrder       Int             @default(0)
+  mealId          String?
+  meal            Meal?           @relation(fields: [mealId], references: [id], onDelete: SetNull)
+  variantId       String?
+  variant         ProteinVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  servings        Int             @default(3)
+  prepWindow      String          @default("EVENING_BEFORE")
+  preparedDishId  String?
+  preparedDish    PreparedDish?   @relation(fields: [preparedDishId], references: [id], onDelete: SetNull)
+  pinnedDayPlanId String?         @unique
+  pinnedDayPlan   DayPlan?        @relation(fields: [pinnedDayPlanId], references: [id], onDelete: SetNull)
+  sides           PoolEntrySide[]
+  cookInstances   PoolCookInstance[]
+}
+
+model PoolEntrySide {
+  poolEntryId String
+  sideId      String
+  poolEntry   PoolEntry @relation(fields: [poolEntryId], references: [id], onDelete: Cascade)
+  side        Side      @relation(fields: [sideId], references: [id], onDelete: Cascade)
+
+  @@id([poolEntryId, sideId])
+}
+
+model PoolCookInstance {
+  id               String            @id @default(cuid())
+  userId           String
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  poolEntryId      String
+  poolEntry        PoolEntry         @relation(fields: [poolEntryId], references: [id], onDelete: Cascade)
+  cookedDate       String
+  cookedAt         DateTime?
+  skippedAt        DateTime?
+  cookConfirmation CookConfirmation?
+  createdAt        DateTime          @default(now())
 }

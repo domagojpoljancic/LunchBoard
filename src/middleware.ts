@@ -12,7 +12,9 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/login", req.nextUrl.origin));
   }
 
-  if (req.auth && isLogin) {
+  // Only bounce away from login when the session looks usable. A JWT can
+  // outlive a wiped DB; requireUser clears that via signout.
+  if (req.auth && isLogin && !req.nextUrl.searchParams.has("callbackUrl")) {
     return NextResponse.redirect(new URL("/week", req.nextUrl.origin));
   }
 

@@ -59,21 +59,21 @@ export function MealTicket({
           onSelect?.();
         }
       }}
-      className={`group relative flex w-full overflow-hidden rounded-[16px] border bg-[var(--card)] text-left transition-transform ${
+      className={`group relative flex h-full w-full overflow-hidden rounded-[16px] border bg-[var(--card)] text-left transition-transform ${
         selected ? "border-2 border-[var(--ink)]" : "border-[var(--line)]"
-      } ${draggable ? "cursor-grab select-none" : ""} ${compact ? "" : "hover:-translate-y-0.5"}`}
+      } ${draggable ? "cursor-grab select-none" : ""} ${compact ? "min-h-[104px]" : "hover:-translate-y-0.5"}`}
     >
       <span
-        className="w-1.5 shrink-0"
+        className="w-1.5 shrink-0 self-stretch"
         style={{ background: proteinColor(meal.proteinGroup) }}
         aria-hidden
       />
-      <span className={`min-w-0 flex-1 ${compact ? "p-2.5" : "p-3.5"}`}>
-        <span className="flex items-start gap-2">
+      <span className={`flex min-w-0 flex-1 flex-col ${compact ? "p-2.5" : "p-3.5"}`}>
+        <span className="flex flex-1 items-start gap-2">
           <span className="min-w-0 flex-1">
             <span
               className={`font-display block leading-snug break-words ${
-                compact ? "text-base" : "text-[20px]"
+                compact ? "min-h-[2.5rem] text-base" : "text-[20px]"
               }`}
             >
               {meal.name}

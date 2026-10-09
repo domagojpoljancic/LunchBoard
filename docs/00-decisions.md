@@ -118,3 +118,33 @@ English. Meat, cheese, pasta, grains, and sauces in grams. Liquids in millilitre
 Dinner as its own plan, photos, aisle sorting, offline use, Google Keep, a pantry that remembers stock across weeks, accounts for a second person, drag and drop.
 
 Leftover days shipped later as an opt-in per day (round-2 plan phase 4). Default remains every day its own cook.
+
+## Stock & reality (addendum)
+
+Locked for the Stock & reality program. Defaults for new weeks stay unchanged until the user opts in: Mon–Fri on, Sat–Sun off, `BY_DAY`, days view on, weekend collapsed, cupboard checklist week-scoped.
+
+| ID | Decision |
+| --- | --- |
+| Q1 | Inventory is a separate **At home** ledger. The weekly cupboard checklist stays. |
+| Q2 | Consume proteins Freezer → Fridge → Pantry. Consume dry goods Pantry → Fridge → Freezer. |
+| Q3 | Undo cooked restores inventory until another decrement touches that item, or 24h, whichever comes first. |
+| Q4 | Pool servings are per pool entry, default 3. |
+| Q5 | Converting by-day → pool keeps meals as optional pins. |
+| Q6 | Weekend expand enables Saturday and Sunday immediately. The user can turn a day off. Collapse keeps meals and disables days. |
+| Q7 | Mode settings are per week, plus “use as default for new weeks”. |
+| Q8 | Heating a prepared dish decrements `min(day.servings, portionsRemaining)`. Heat plans default to 1 serving. |
+| Q9 | “Add purchase to inventory” is an opt-in prompt. Remember the preference. |
+| Q10 | Pool target is user-set, default 5, clamped 3–7. |
+| Q11 | Prepared dishes do not count toward the diversity sticky. |
+| Q12 | Solo user only. All new rows are user-scoped. |
+| E1 | Return-visit cook prompt after 6 hours. |
+| E2 | Heat-plan confirmation increments `cookCount` only when `linkedMealId` is set. |
+| E3 | Mode B is view-only until the user applies stock. |
+| E4 | Portions at 0 soft-archive, with undo for 24h. |
+
+Program rules:
+
+- Prepared dishes are free-text names only. No dish-type taxonomy, category enum, or suggested type chips.
+- One confirm pipeline: cook view, login queue, and pool cook instances call `confirmCook` / `skipCook` / `undoCook`. Never decrement stock on place, enable, week confirm, or list rebuild.
+- Mode A advisories do not change `rebuildShopping`. Mode B never auto-hides `CARRIED` lines.
+- Confirming a leftover does not full-decrement the source recipe again.

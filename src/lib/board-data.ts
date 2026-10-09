@@ -61,9 +61,19 @@ export async function loadBoard(userId: string, weekStart: string) {
           mealSides: { include: { side: true } },
         },
       },
+      preparedDish: true,
       variant: true,
       sides: { include: { side: true } },
     },
+  });
+
+  const poolEntries = await prisma.poolEntry.findMany({
+    where: { weekId: week.id },
+    include: {
+      meal: { select: { name: true } },
+      preparedDish: { select: { name: true } },
+    },
+    orderBy: { sortOrder: "asc" },
   });
 
   const days: BoardDay[] = daysRaw.map((day) => {
@@ -75,14 +85,15 @@ export async function loadBoard(userId: string, weekStart: string) {
       null;
     const selectedSideIds = new Set(day.sides.map((s) => s.sideId));
     const sideMinutes = day.sides.map((s) => s.side.activeMinutes);
-    const warning = meal
-      ? timeWarning({
-          prepWindow: day.prepWindow,
-          mealActiveMinutes: meal.activeMinutes,
-          mealTotalMinutes: meal.totalMinutes,
-          sideActiveMinutes: sideMinutes,
-        })
-      : { warn: false, active: 0, total: 0 };
+    const warning =
+      meal && day.cookKind !== "HEAT_PREPARED"
+        ? timeWarning({
+            prepWindow: day.prepWindow,
+            mealActiveMinutes: meal.activeMinutes,
+            mealTotalMinutes: meal.totalMinutes,
+            sideActiveMinutes: sideMinutes,
+          })
+        : { warn: false, active: 0, total: 0 };
 
     return {
       id: day.id,
@@ -91,6 +102,10 @@ export async function loadBoard(userId: string, weekStart: string) {
       servings: day.servings,
       prepWindow: day.prepWindow,
       cookedAt: day.cookedAt?.toISOString() ?? null,
+      skippedAt: day.skippedAt?.toISOString() ?? null,
+      cookKind: day.cookKind,
+      preparedDishId: day.preparedDishId,
+      preparedDishName: day.preparedDish?.name ?? null,
       fillReason: day.fillReason,
       leftoverOfDayId: day.leftoverOfDayId,
       meal: meal
@@ -123,6 +138,7 @@ export async function loadBoard(userId: string, weekStart: string) {
   const proteinCounts = new Map<string, number>();
   for (const day of days) {
     if (!day.enabled || !day.meal) continue;
+    if (day.cookKind === "HEAT_PREPARED" || day.preparedDishId) continue;
     const g = day.meal.proteinGroup;
     proteinCounts.set(g, (proteinCounts.get(g) ?? 0) + 1);
   }
@@ -135,6 +151,12 @@ export async function loadBoard(userId: string, weekStart: string) {
     }
   }
 
+  const preparedDishes = await prisma.preparedDish.findMany({
+    where: { userId, archivedAt: null, portionsRemaining: { gt: 0 } },
+    select: { id: true, name: true, portionsRemaining: true },
+    orderBy: { updatedAt: "desc" },
+  });
+
   return {
     weekId: week.id,
     weekStart: week.weekStart,
@@ -143,5 +165,18 @@ export async function loadBoard(userId: string, weekStart: string) {
     diversityCount,
     days,
     meals: library,
+    planningMode: week.planningMode,
+    daysView: week.daysView,
+    weekendExpanded: week.weekendExpanded,
+    poolTarget: week.poolTarget,
+    poolEntries: poolEntries.map((e) => ({
+      id: e.id,
+      mealId: e.mealId,
+      mealName: e.meal?.name ?? null,
+      preparedName: e.preparedDish?.name ?? null,
+      servings: e.servings,
+      pinnedDayPlanId: e.pinnedDayPlanId,
+    })),
+    preparedDishes,
   };
 }

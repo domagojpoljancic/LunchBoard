@@ -388,3 +388,39 @@ Show when `cookCount >= nudgeDismissedAtCookCount + 3` and confidence is not `KN
 - `PROMPT` offers `KNOW`
 
 “Not now” sets `nudgeDismissedAtCookCount = cookCount`. “Yes” changes confidence and sets `nudgeDismissedAtCookCount = cookCount`.
+
+## Stock & reality
+
+### Home inventory
+
+User-scoped ledger (`InventoryItem`): name, `nameKey`, location (`PANTRY` | `FREEZER` | `FRIDGE`), quantity, unit (empty string when unspecified), optional `roleHint`, `notes`, `warnBelow`. Unique on `(userId, nameKey, unit, location)`.
+
+Every quantity change writes `InventoryMutation` (reasons: `MANUAL`, `PURCHASE_ADD`, `COOK_DECREMENT`, `UNDO`).
+
+Cook confirmation decrements matching `nameKey+unit` rows. Location order: proteins Freezer → Fridge → Pantry; dry goods Pantry → Fridge → Freezer. Clamp at 0; record shortfall. Null recipe quantities do not decrement. Never decrement on place, enable, week confirm, or rebuild.
+
+Undo cooked restores reversible mutations until another decrement touches that item, or 24h, whichever first.
+
+### Cook confirmation
+
+`confirmCook` / `skipCook` / `undoCook` are the only paths. Entry points: cook view, login/return-visit sheet (≥6h), pool cook instances. Idempotent: already `COOKED` is a no-op.
+
+Leftover days (`cookKind: LEFTOVER` or `leftoverOfDayId` set): confirm does **not** full-decrement the source recipe again.
+
+### List advisories (Mode A)
+
+`adviseStock` is display-only. `rebuildShopping` is unchanged.
+
+### Soft net (Mode B)
+
+View-only until the user taps Apply stock. Never auto-hides `CARRIED` lines.
+
+### Planning modes
+
+Week fields: `planningMode` (`BY_DAY` default | `POOL`), `daysView` (default true; off coerces pool), `weekendExpanded` (default false; expand enables Sat/Sun), `poolTarget` (default 5, clamp 3–7). Optional user defaults for new weeks.
+
+Pool list collect: each unpinned pool entry is a synthetic day; pinned entries collect via the day only (once). Heat / leftover / prepared entries contribute 0 recipe buy lines.
+
+### Prepared dishes
+
+Free-text names only — no dish-type taxonomy. Portions ≥ 0; at 0 soft-archive with undo for 24h. Heat plans: `cookKind: HEAT_PREPARED`, default servings 1; confirm burns `min(servings, portionsRemaining)`. `cookCount` increments only when `linkedMealId` is set. Prepared dishes do not count toward diversity.

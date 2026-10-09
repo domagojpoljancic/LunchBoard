@@ -1,13 +1,13 @@
 # LunchBoard
 
-> **WIP — working name.** The round-2 fix plan is merged on `main`: visual bugs, live carry-over,
-> onboarding, leftovers, cook logging, and CI/E2E. A standards audit then closed a critical Auth.js
-> advisory, two tap-target bugs, and some doc drift.
+> **WIP — working name.** Stock & reality (home inventory, cook confirmation, planning modes,
+> prepared dishes) and the board UX pass (By day / Week’s meals, modal day sheet, equal library
+> cards, confidence toggle without Save-meal flash) ship on this branch. Cupboard checklist stays
+> week-scoped; inventory is a separate At home ledger.
 >
-> Still open: the meal editor cannot attach sides or edit steps, there is no
-> hosted preview (needs Postgres secrets), and `next@15` carries two build-time `postcss` advisories
-> that only a `next@16` major upgrade clears. Eight boxes in
-> [docs/07-definition-of-done.md](docs/07-definition-of-done.md) are still unticked, so the banner stays.
+> Still open: meal editor sides/steps polish, hosted preview (Postgres secrets), `next@16` for the
+> last build-time `postcss` advisories, and remaining boxes in
+> [docs/07-definition-of-done.md](docs/07-definition-of-done.md).
 
 Weekday lunch planning on a board. You keep the meals you know, add your own, place them on the days you are actually home, and get a buy list plus a pantry check.
 
@@ -35,13 +35,18 @@ Say **"start next plan"**, or run **`/build-next`**. Spec: [docs/10-next-plan.md
 | Web app shell | **Works** | Next.js 15, Prisma SQLite, Auth.js |
 | Meal library | **Works** | Shelves, protein filter, circular know check, pencil edit |
 | Ingredient editing | **Works** | Add/remove/edit; Buy/Cupboard readable |
-| Week board | **Works** | Meals on top, days fill the screen, zoom, day card on the left |
+| Week board | **Works** | Meals on top; By day / Week’s meals toggle; day sheet as modal |
 | Buy list and pantry | **Works** | Live carry-over, copy list, weekly pantry reset |
-| Cook view | **Works** | Grouped ingredients; one cook log per day + undo |
+| Cook view | **Works** | Grouped ingredients; one cook log per day + undo; shared confirm pipeline |
 | Fill empty days | **Works** | Known → similar → repeat last; TRY_NEW tag |
 | Onboarding | **Works** | First-run “what can you cook?” |
-| Leftover days | **Works** | Opt-in from the day sheet |
-| E2E + CI | **Works** | 11 Playwright tests, typecheck and lint in CI, screenshot artifacts |
+| Leftover days | **Works** | Opt-in from the day sheet; no double inventory decrement |
+| At home inventory | **Works** | Durable stock by location; cook confirm decrements |
+| Cook confirmation sheet | **Works** | Cooked / Skipped / Later after login or 6h return |
+| List stock advisories | **Works** | Mode A advisories; optional purchase→inventory; Mode B apply |
+| Planning modes | **Works** | BY_DAY default; lunch pool; weekend expand; week settings |
+| Prepared dishes / heat | **Works** | Free-text names; heat plans; portion confirm |
+| E2E + CI | **Works** | Playwright + inventory/pool/heat specs; typecheck and lint in CI |
 | Meal editor: proteins/sides/steps edit | **Partial** | Basics + ingredients; attach/create side and step edit still light |
 | Drag to place | **Works** | Drag onto a day, or select and click. Keys 1–7 still place |
 | Hosted preview URL | **TBD** | Needs Postgres `DATABASE_URL` + `AUTH_SECRET` (+ Vercel) |
@@ -73,7 +78,7 @@ and `npx prisma db seed` on its own will top up the starter meals without touchi
 ## Tests
 
 ```bash
-npm test        # 52 unit and DB tests against prisma/test.db
+npm test        # 124 unit and DB tests against prisma/test.db
 npm run build
 npm run e2e     # Playwright, production build on port 3100, wipes prisma/e2e.db
 ```
