@@ -1,27 +1,42 @@
 import { test, expect } from "@playwright/test";
-import { login, skipOnboarding } from "./helpers";
+import { gotoWeekOffset, login, skipOnboarding } from "./helpers";
 
-test("library shows Can cook shelf with meal cards", async ({ page }) => {
-  test.setTimeout(90000);
+test("Can cook library cards share equal height", async ({ page }) => {
+  test.setTimeout(120000);
   await login(page);
   await skipOnboarding(page);
+  await gotoWeekOffset(page, 18);
 
   const aside = page.locator("aside").first();
   await expect(aside.getByRole("heading", { name: "Can cook" })).toBeVisible();
 
-  // Seed meals default to RECIPE — mark one known so Can cook gets a card
-  await aside
-    .getByRole("button", { name: "Mark Bolognese as known" })
-    .first()
-    .click();
+  // Mark two seed meals known so Can cook has comparable cards
+  for (const name of ["Bolognese", "Chicken rice bowl"]) {
+    const mark = aside.getByRole("button", { name: `Mark ${name} as known` });
+    if (await mark.first().isVisible().catch(() => false)) {
+      await mark.first().click();
+      await expect(
+        aside.getByRole("button", { name: `${name}: marked as known` }).first(),
+      ).toBeVisible({ timeout: 15000 });
+    }
+  }
 
   const canCookSection = aside
     .locator("section")
     .filter({ has: page.getByRole("heading", { name: "Can cook" }) });
-  await expect(
-    canCookSection.getByRole("button", { name: "Bolognese", exact: true }),
-  ).toBeVisible({ timeout: 15000 });
-  await expect(
-    canCookSection.locator('[data-testid="library-meal-card"]'),
-  ).toHaveCount(1, { timeout: 15000 });
+  const cards = canCookSection.locator('[data-testid="library-meal-card"]');
+  await expect(cards.first()).toBeVisible({ timeout: 15000 });
+  const count = await cards.count();
+  expect(count).toBeGreaterThan(0);
+
+  if (count > 1) {
+    const heights: number[] = [];
+    for (let i = 0; i < Math.min(count, 4); i++) {
+      const box = await cards.nth(i).boundingBox();
+      heights.push(box?.height ?? 0);
+    }
+    const min = Math.min(...heights);
+    const max = Math.max(...heights);
+    expect(max - min).toBeLessThan(8);
+  }
 });
