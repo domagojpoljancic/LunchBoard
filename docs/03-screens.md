@@ -92,9 +92,9 @@ Tabs: Inventory (grouped by location) and Prepared (free-text names, portions, l
 
 On week landing after login or return ≥6h, if past enabled meal days are unconfirmed: sheet with **Cooked** · **Skipped** · **Later**. Later never hard-blocks the app.
 
-## Week settings
+## Week planning control
 
-Secondary control on the board: planning mode, days view, weekend expand, pool target, “use as default for new weeks”. Pool strip shows when mode is `POOL`.
+Primary segmented control on the board: **By day** (weekday columns) or **Week’s meals** (day-independent lunch shortlist). Optional **Show weekend** when by day. Day details open in a modal dialog over the board — never a left column.
 
 ## Cook
 

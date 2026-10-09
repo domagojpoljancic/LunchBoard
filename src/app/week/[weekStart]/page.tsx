@@ -3,7 +3,6 @@ import { CookConfirmSheet } from "@/components/CookConfirmSheet";
 import { Onboarding } from "@/components/Onboarding";
 import { PoolSweepSheet } from "@/components/PoolSweepSheet";
 import { WeekBoard } from "@/components/WeekBoard";
-import { WeekModePanel } from "@/components/WeekModePanel";
 import { loadBoard } from "@/lib/board-data";
 import { prisma } from "@/lib/db";
 import {
@@ -82,31 +81,22 @@ export default async function WeekPage({
       {!freshUser.onboardedAt ? (
         <Onboarding meals={board.meals} />
       ) : null}
-      <div className="relative">
-        <WeekModePanel
-          weekId={board.weekId}
-          planningMode={board.planningMode}
-          daysView={board.daysView}
-          weekendExpanded={board.weekendExpanded}
-          poolTarget={board.poolTarget}
-          poolEntries={board.poolEntries}
-          libraryMeals={board.meals.map((m) => ({ id: m.id, name: m.name }))}
-        />
-        <WeekBoard
-          weekStart={board.weekStart}
-          weekId={board.weekId}
-          days={board.days}
-          meals={board.meals}
-          diversityGroup={board.diversityGroup}
-          diversityCount={board.diversityCount}
-          diversityDismissed={board.diversityDismissed}
-          nudgeMealId={nudge ?? null}
-          planningMode={board.planningMode}
-          daysView={board.daysView}
-          poolEntries={board.poolEntries}
-          preparedDishes={board.preparedDishes}
-        />
-      </div>
+      <WeekBoard
+        weekStart={board.weekStart}
+        weekId={board.weekId}
+        days={board.days}
+        meals={board.meals}
+        diversityGroup={board.diversityGroup}
+        diversityCount={board.diversityCount}
+        diversityDismissed={board.diversityDismissed}
+        nudgeMealId={nudge ?? null}
+        planningMode={board.planningMode}
+        daysView={board.daysView}
+        weekendExpanded={board.weekendExpanded}
+        poolTarget={board.poolTarget}
+        poolEntries={board.poolEntries}
+        preparedDishes={board.preparedDishes}
+      />
       <CookConfirmSheet
         pending={pending.map((p) => ({
           id: p.id,

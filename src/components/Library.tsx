@@ -27,12 +27,14 @@ export function Library({
   selectedId,
   onSelect,
   beforeSelect,
+  planningMode = "BY_DAY",
 }: {
   meals: LibraryMeal[];
   selectedId: string | null;
   onSelect: (id: string | null) => void;
   /** Return true to swallow the click, used after a drag. */
   beforeSelect?: () => boolean;
+  planningMode?: string;
 }) {
   const [query, setQuery] = useState("");
   const [protein, setProtein] = useState<string>("ALL");
@@ -103,7 +105,9 @@ export function Library({
         </Link>
       </div>
       <p id="drag-hint" className="mt-2 text-sm text-[var(--muted)]">
-        Drag a meal onto a day, or select it and click the day.
+        {planningMode === "POOL"
+          ? "Select a meal, then add it to this week’s list below."
+          : "Drag a meal onto a day, or select it and click the day."}
       </p>
       <div
         className="shelf-scroll mt-2 flex items-start gap-4 overflow-x-auto pb-1"
@@ -125,12 +129,16 @@ export function Library({
                 No meal matches that.
               </p>
             ) : null}
-            <div className="flex gap-2">
+            <div className="flex items-stretch gap-2">
               {shelf.items.map((meal) => {
                 const known =
                   meal.confidence === "KNOW" || meal.confidence === "PROMPT";
                 return (
-                  <div key={meal.id} className="w-[220px] shrink-0">
+                  <div
+                    key={meal.id}
+                    className="flex w-[220px] shrink-0"
+                    data-testid="library-meal-card"
+                  >
                     <MealTicket
                       meal={meal}
                       compact

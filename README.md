@@ -34,7 +34,7 @@ Say **"start next plan"**, or run **`/build-next`**. Spec: [docs/10-next-plan.md
 | Web app shell | **Works** | Next.js 15, Prisma SQLite, Auth.js |
 | Meal library | **Works** | Shelves, protein filter, circular know check, pencil edit |
 | Ingredient editing | **Works** | Add/remove/edit; Buy/Cupboard readable |
-| Week board | **Works** | Meals on top, days fill the screen, zoom, day card on the left |
+| Week board | **Works** | Meals on top; By day / Week’s meals toggle; day sheet as modal |
 | Buy list and pantry | **Works** | Live carry-over, copy list, weekly pantry reset |
 | Cook view | **Works** | Grouped ingredients; one cook log per day + undo; shared confirm pipeline |
 | Fill empty days | **Works** | Known → similar → repeat last; TRY_NEW tag |

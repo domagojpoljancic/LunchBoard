@@ -8,16 +8,21 @@ import {
   dismissConfidenceNudge,
 } from "@/app/actions/cook";
 import {
+  addMealToPool,
   dismissDiversity,
+  fillPoolSlots,
   fillWeekEmptyDays,
   moveDayMeal,
   placeMealOnDay,
+  removePoolEntry,
 } from "@/app/actions/week";
 import { CoachSticky } from "@/components/CoachSticky";
 import { DayColumn, type DayView } from "@/components/DayColumn";
 import { DaySheet, type SideOption } from "@/components/DaySheet";
 import { Library, type LibraryMeal } from "@/components/Library";
+import { PlanningModeToggle } from "@/components/PlanningModeToggle";
 import { TopBar } from "@/components/TopBar";
+import { WeekendToggle } from "@/components/WeekendToggle";
 import { useBoardDrag } from "@/components/use-board-drag";
 import { proteinLabel } from "@/lib/protein";
 import { weekdayLabel, weekdayShort } from "@/lib/weeks";
@@ -37,6 +42,8 @@ export function WeekBoard({
   nudgeMealId,
   planningMode = "BY_DAY",
   daysView = true,
+  weekendExpanded = false,
+  poolTarget = 5,
   poolEntries = [],
   preparedDishes = [],
 }: {
@@ -50,6 +57,8 @@ export function WeekBoard({
   nudgeMealId?: string | null;
   planningMode?: string;
   daysView?: boolean;
+  weekendExpanded?: boolean;
+  poolTarget?: number;
   poolEntries?: Array<{
     id: string;
     mealId: string | null;
@@ -71,10 +80,11 @@ export function WeekBoard({
   const [replacing, setReplacing] = useState(false);
   const [fillNote, setFillNote] = useState<string | null>(null);
   const [nudgeHidden, setNudgeHidden] = useState(false);
-  const [zoom, setZoom] = useState(100);
   const [status, setStatus] = useState("");
   const [pending, startTransition] = useTransition();
 
+  const isPool = planningMode === "POOL";
+  const showDays = !isPool || daysView;
   const selectedMeal = meals.find((m) => m.id === selectedId) ?? null;
   const openDay = days.find((d) => d.id === openDayId) ?? null;
 
@@ -97,7 +107,7 @@ export function WeekBoard({
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (!selectedId) return;
+      if (!selectedId || isPool) return;
       const target = e.target as HTMLElement | null;
       if (
         target &&
@@ -126,7 +136,7 @@ export function WeekBoard({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [days, selectedId]);
+  }, [days, selectedId, isPool]);
 
   const showDiversity =
     !diversityDismissed && diversityGroup && diversityCount >= 4;
@@ -142,6 +152,7 @@ export function WeekBoard({
   const dayViews = useMemo(() => days, [days]);
 
   const { drag, didDrag } = useBoardDrag(rootRef, ({ mealId, fromDayId, toDayId }) => {
+    if (isPool && !showDays) return;
     const day = days.find((item) => item.id === toDayId);
     if (!day?.enabled) return;
     startTransition(async () => {
@@ -182,6 +193,12 @@ export function WeekBoard({
       disabled={pending}
       onClick={() => {
         startTransition(async () => {
+          if (isPool) {
+            await fillPoolSlots(weekId);
+            setFillNote(null);
+            router.refresh();
+            return;
+          }
           const result = await fillWeekEmptyDays(weekStart);
           if (result.placed === 0 || result.emptyLeft > 0) {
             setFillNote(
@@ -194,7 +211,9 @@ export function WeekBoard({
       }}
     >
       <span className="md:hidden">Fill</span>
-      <span className="hidden md:inline">Fill empty days</span>
+      <span className="hidden md:inline">
+        {isPool ? "Fill week’s meals" : "Fill empty days"}
+      </span>
     </button>
   );
 
@@ -215,27 +234,18 @@ export function WeekBoard({
         }
       />
 
-      <div className="hidden shrink-0 items-center gap-3 px-4 pt-3 md:flex">
-        <label className="flex items-center gap-3">
-          <span className="section-label">Zoom</span>
-          <input
-            type="range"
-            min={100}
-            max={150}
-            step={5}
-            value={zoom}
-            aria-valuetext={`${zoom}%`}
-            onChange={(event) => setZoom(Number(event.target.value))}
-          />
-        </label>
-        <span className="w-12 text-sm tabular-nums">{zoom}%</span>
-        <button
-          type="button"
-          className="btn-text"
-          onClick={() => setZoom(100)}
-        >
-          Fit week
-        </button>
+      <div className="flex shrink-0 flex-wrap items-center gap-3 px-3 pt-3 md:px-4">
+        <PlanningModeToggle weekId={weekId} planningMode={planningMode} />
+        {!isPool ? (
+          <WeekendToggle weekId={weekId} weekendExpanded={weekendExpanded} />
+        ) : null}
+        <p className="basis-full text-sm text-[var(--muted)] sm:basis-auto">
+          {isPool
+            ? "Pick lunches for the week — no day assignment required."
+            : weekendExpanded
+              ? "Assign a lunch to each day, including the weekend."
+              : "Assign a lunch to each weekday."}
+        </p>
       </div>
 
       <div className="shrink-0 px-3 pt-3 md:px-4">
@@ -244,27 +254,11 @@ export function WeekBoard({
           selectedId={selectedId}
           onSelect={setSelectedId}
           beforeSelect={swallowDragClick}
+          planningMode={planningMode}
         />
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-3 px-3 py-3 md:flex-row md:overflow-hidden md:px-4">
-        {openDay ? (
-          <DaySheet
-            day={openDay}
-            sides={openDay.suggestedSides}
-            replacing={replacing}
-            selectedMealId={selectedId}
-            leftoverSources={leftoverSourcesFor(openDay)}
-            preparedDishes={preparedDishes}
-            onClose={() => {
-              setOpenDayId(null);
-              setReplacing(false);
-            }}
-            onStartReplace={() => setReplacing(true)}
-            onCancelReplace={() => setReplacing(false)}
-          />
-        ) : null}
-
+      <div className="flex min-h-0 flex-1 flex-col gap-3 px-3 py-3 md:overflow-hidden md:px-4">
         <div className="flex min-w-0 flex-1 flex-col gap-3 md:overflow-auto">
           {showDiversity ? (
             <CoachSticky
@@ -322,49 +316,85 @@ export function WeekBoard({
             </CoachSticky>
           ) : null}
 
-          {planningMode === "POOL" ? (
-            <div className="sheet space-y-2 p-3">
-              <div className="flex items-baseline justify-between gap-2">
-                <h2 className="font-display text-xl">Lunch pool</h2>
+          {isPool ? (
+            <section className="sheet space-y-3 p-4">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <h2 className="font-display text-2xl">This week’s meals</h2>
                 <span className="text-sm text-[var(--muted)]">
-                  {poolEntries.length} lunches
+                  {poolEntries.length} of {poolTarget}
                 </span>
               </div>
-              {poolEntries.length === 0 ? (
+              {selectedMeal ? (
+                <button
+                  type="button"
+                  className="btn-primary"
+                  disabled={
+                    pending ||
+                    poolEntries.length >= poolTarget ||
+                    poolEntries.some((e) => e.mealId === selectedMeal.id)
+                  }
+                  onClick={() =>
+                    startTransition(async () => {
+                      await addMealToPool({
+                        weekId,
+                        mealId: selectedMeal.id,
+                      });
+                      setSelectedId(null);
+                      setStatus(`Added ${selectedMeal.name}.`);
+                      router.refresh();
+                    })
+                  }
+                >
+                  Add {selectedMeal.name} to this week
+                </button>
+              ) : (
                 <p className="text-sm text-[var(--muted)]">
-                  Open week settings to add about five lunches for this week.
+                  Select a meal above to add it here.
+                </p>
+              )}
+              {poolEntries.length === 0 ? (
+                <p className="text-[var(--muted)]">
+                  No meals yet. Add a few you might cook this week.
                 </p>
               ) : (
-                <ul className="flex flex-wrap gap-2">
+                <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                   {poolEntries.map((entry) => (
                     <li
                       key={entry.id}
-                      className="rounded-[var(--radius-ticket)] border border-[var(--line)] bg-[var(--paper)] px-3 py-2"
+                      className="flex items-center justify-between gap-2 rounded-[var(--radius-ticket)] border border-[var(--line)] bg-[var(--paper)] px-3 py-3"
                     >
-                      <span className="font-display">
-                        {entry.preparedName
-                          ? entry.preparedName
-                          : entry.mealName ?? "Meal"}
-                      </span>
-                      <span className="ml-2 text-sm text-[var(--muted)]">
-                        {entry.servings} portions
-                        {entry.pinnedDayPlanId ? " · pinned" : ""}
-                      </span>
+                      <div className="min-w-0">
+                        <p className="font-display text-lg leading-tight">
+                          {entry.preparedName
+                            ? entry.preparedName
+                            : entry.mealName ?? "Meal"}
+                        </p>
+                        <p className="text-sm text-[var(--muted)]">
+                          {entry.servings} portions
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn-text text-[var(--warning)]"
+                        onClick={() =>
+                          startTransition(async () => {
+                            await removePoolEntry(entry.id);
+                            router.refresh();
+                          })
+                        }
+                      >
+                        Remove
+                      </button>
                     </li>
                   ))}
                 </ul>
               )}
-            </div>
+            </section>
           ) : null}
 
-          {daysView ? (
+          {showDays ? (
             <div className="min-h-0 flex-1 md:overflow-auto">
-              <div
-                className="flex flex-col gap-3 md:h-full md:flex-row md:gap-2"
-                style={
-                  zoom > 100 ? { width: `${zoom}%`, minWidth: "100%" } : undefined
-                }
-              >
+              <div className="flex flex-col gap-3 md:h-full md:flex-row md:gap-2">
                 {dayViews.map((day) => (
                   <div
                     key={day.id}
@@ -410,6 +440,23 @@ export function WeekBoard({
           ) : null}
         </div>
       </div>
+
+      {openDay && showDays ? (
+        <DaySheet
+          day={openDay}
+          sides={openDay.suggestedSides}
+          replacing={replacing}
+          selectedMealId={selectedId}
+          leftoverSources={leftoverSourcesFor(openDay)}
+          preparedDishes={preparedDishes}
+          onClose={() => {
+            setOpenDayId(null);
+            setReplacing(false);
+          }}
+          onStartReplace={() => setReplacing(true)}
+          onCancelReplace={() => setReplacing(false)}
+        />
+      ) : null}
 
       <p className="sr-only" aria-live="polite">
         {status}

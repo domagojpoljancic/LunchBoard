@@ -12,8 +12,10 @@ Use these words. The voice is a calm cook standing next to the board: short, spe
 | Fill | Fill empty days |
 | Meals (mobile) | The shelf is on every width. There is no separate Meals button. |
 | Drag hint | Drag a meal onto a day, or select it and click the day. |
-| Zoom | Zoom |
-| Fit week | Fit week |
+| Pool hint | Select a meal, then add it to this week’s list below. |
+| Plan by day | By day |
+| Plan week meals | Week’s meals |
+| Show weekend | Show weekend |
 | Previous week | Previous |
 | Next week | Next |
 | Sign in | Sign in |
@@ -117,18 +119,15 @@ Protein names in the diversity line: beef, white meat, fish, vegetarian, vegan, 
 | Skipped | Skipped |
 | Later | Later |
 
-## Week settings
+## Week planning
 
 | Element | Text |
 | --- | --- |
-| Open | Week settings |
-| Planning day | Day by day |
-| Planning pool | Lunch pool |
-| Days view | Show days of the week |
-| Weekend | Show weekend days |
-| Pool size | Pool size |
-| Use as default | Use as default for new weeks |
-| Fill pool | Fill pool |
+| By day help | Assign a lunch to each weekday. |
+| Week meals help | Pick lunches for the week — no day assignment required. |
+| Add to week | Add {name} to this week |
+| Pool empty | No meals yet. Add a few you might cook this week. |
+| Fill pool | Fill week’s meals |
 
 ## Cook
 
